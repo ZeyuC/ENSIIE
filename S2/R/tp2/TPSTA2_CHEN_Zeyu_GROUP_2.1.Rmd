@@ -13,7 +13,7 @@ output:
 ```{r , include=TRUE}
 # N est la fois d'échantillons
 # f est la fonction qu'on va simuler
-# n taille d'échantillon, su est mu, o est sigma 
+# n taille d'échantillon, u est mu, o est sigma 
 sim.fun <-function (N,f,n,u,o)   
   { 
     sample<-1:N
@@ -188,55 +188,300 @@ parce que l'espérence et la varience de Poison sont tous $\lambda$
 
 
 ### <--2-->
-### a
+### 2.a
 $${P}(|{X}-\mu|\ge \sigma)\ = E({I}_{|X-\mu|\ge k\sigma})$$
 avec $I_{A}$ est une fonction indicatrice
 
-###b
+### 2.b
 ```{r , include=TRUE}
-#n la taille 
-#r une échantillon qu'on a obeteun 
-#mu espérence
-
-  P_deviation <- function(n,r,mu,delta)
+#calcule le borne par Monte Carlo
+#parma r une échantillon qu'on a obeteun,n la taille,mu espérence
+#return la probabilté de déviation d'une v.a de sa moyenne 
+library(rmutil)
+  Prob_devia <- function(n,r,mu,delta)
   {
     res<- 0
     for (i in 1:n) {
-        if (r[i]-mu >= delta)
+        if (abs(r[i]-mu) >= delta)
           res<-res+1
     }
     return(res/n)
   }
-  r1<-rnorm(10000,mean = 1,sd = 1)
+  r1<-rnorm(100000,mean = 1,sd = 1)
   r2<-rpareto(10000,m=1,s=2)
   r3<-rpois(10000,lambda=1)
   
 
 ```
 ### On calcule par  la fonction P_deviation les probabilités de déviation d'une v.a de sa moyenne
-Dans le cas Gaussien avec mean=1 sd=1 ${P}(|{X}-1|\ge 2)=$
+Dans le cas Gaussien avec mean=1 sd=1 ${P}(|{X}-1|\ge 2)$
 ```{r , include=TRUE}
-P_deviation(10000,r1,1,2)
+list("Gaussien "= Prob_devia(100000,r1,1,2))
 ```
 Dans le cas Pareto avec m=1 s=1 ${P}(|{X}-1|\ge 2)=$
 ```{r , include=TRUE}
-P_deviation(10000,r1,1,2)
+list("Pareto"=Prob_devia(10000,r2,1,2))
 ```
 
-Dans le cas Pareto avec lambda=1${P}(|{X}-1|\ge 2)=$
+Dans le cas Poisson avec lambda=1${P}(|{X}-1|\ge 2)=$
 
 ```{r , include=TRUE}
-P_deviation(10000,r1,1,2)
+list("Poisson"=Prob_devia(10000,r3,1,2))
 ```
 La précison de cette estimation est cinq
 
-###c
+### 2.c
+Remarque:
+Quand on prend un échantillon avec taille N, ${V[\bar X_{N}]}=\frac{1}{N}V[X]$
+```{r , include=TRUE}
 
-*quand $\delta$ = $\sigma$, on a borne obtenue par Bienaymé Chebychev qui égale à 1
+Borne_Chebcf <- function (delta,sigma)
+{
+  return ((sigma/delta)**2);
+}
+```
 
-*quand $\delta$ = $2\sigma$,on a borne obtenue par Bienaymé Chebychev qui égale à 0.25
 
-*quand $\delta$ = $3\sigma$,on a borne obtenue par Bienaymé Chebychev qui égale à 0.11
+Quand le cas Gaussien avec ${\delta=1 \;\;\mu=0 \;\; \sigma=1}$
+```{r , include=TRUE}
+x1=Borne_Chebcf(1,1);
+r= rnorm(10000,0,1)
+x2=Prob_devia(10000,r,0,1);
+list("Chebychev"=x1,"Monte Carlo"=x2) 
+```
 
-particulierment, si on change $\sigma$, les borne changeont pas
+Quand le cas Gaussien avec ${\delta=1 \;\;\mu=0 \;\; \sigma=0.5}$
+```{r , include=TRUE}
+x1=Borne_Chebcf(1,0.5);
+r= rnorm(10000,0,0.5)
+x2=Prob_devia(10000,r1,0,1);
+list("Chebychev"=x1,"Monte Carlo"=x2) 
+```
+
+Quand le cas Gaussien avec ${\delta=2 \;\;\mu=1 \;\; \sigma=1}$
+```{r , include=TRUE}
+x1=Borne_Chebcf(2,1);
+r= rnorm(10000,1,1)
+x2=Prob_devia(10000,r1,1,1);
+list("Chebychev"=x1,"Monte Carlo"=x2) 
+```
+
+Quand le cas Poisson avec ${\delta=2 \;\; \lambda=1}$
+```{r , include=TRUE}
+x1=Borne_Chebcf(2,1);
+r= rpois(10000,1)
+x2=Prob_devia(10000,r,1,2);
+list("Chebychev"=x1,"Monte Carlo"=x2)
+```
+
+Quand le cas Poisson avec ${\delta=2 \;\;  \lambda=0.5}$
+```{r , include=TRUE}
+x1=Borne_Chebcf(2,0.5);
+r= rpois(10000,0.5)
+x2=Prob_devia(10000,r,0.5,2);
+list("Chebychev"=x1, "Monte Carl" = x2)
+```
+
+###d
+Le cas Gaussien $X \sim N(\mu, \sigma)$
+$P(X \ge t)  \le  exp(-\frac{(t-\mu)^2}{2\sigma^2})$ 
+Donc : $P(X-\mu\ge \delta)  \le  exp(-\frac{\delta^2}{2\sigma^2})$ car ici $t = \mu+\delta$
+
+```{r , include=TRUE}
+Borne_Chernoff_Gaus<- function(sigma,delta)
+{
+  borne= exp(-(delta**2)/(2*(sigma**2)));
+  return (borne);
+}
+
+Prob_devia_sans_abs <- function(n,r,mu,delta)
+  {
+    res<- 0
+    for (i in 1:n) {
+        if ((r[i]-mu) >= delta)
+          res<-res+1
+    }
+    return(res/n)
+  }
+
+```
+Quand le cas Gaussien avec ${\delta=1 \;\;\mu=0 \;\; \sigma=1}$
+
+```{r , include=TRUE}
+x1 = Borne_Chernoff_Gaus(1,1)
+r= rnorm(10000,0,1)
+x2=Prob_devia_sans_abs(10000,r,0,1);
+list("Chernoff"=x1,"Monte Carlo"=x2) 
+```
+Quand le cas Gaussien avec ${\delta=2 \;\;\mu=1 \;\; \sigma=3}$
+```{r , include=TRUE}
+x1 = Borne_Chernoff_Gaus(3,2)
+r= rnorm(10000,1,3)
+x2=Prob_devia_sans_abs(10000,r,1,2);
+list("Chernoff"=x1,"Monte Carlo"=x2) 
+```
+Quand le cas Gaussien avec ${\delta=3 \;\;\mu=1 \;\; \sigma=1}$
+```{r , include=TRUE}
+x1 = Borne_Chernoff_Gaus(1,3)
+r= rnorm(10000,1,1)
+x2=Prob_devia_sans_abs(10000,r,1,3);
+list("Chernoff"=x1,"Monte Carlo"=x2) 
+```
+
+remarque:
+$P(X \ge t)  \le  exp(-\mu h(\frac{t}{\mu})$ avec
+$h(x)=(1+x)log(1+x)-x$
+
+Quand le cas Poisson avec ${\delta=3 \;\;\lambda=1}$
+```{r , include=TRUE}
+Borne_Chernoff_Pois<- function(lambda,delta)
+{
+  borne= exp(-lambda*(1+(delta/lambda)*log(1+(delta/lambda))-(delta/lambda)));
+  return (borne);
+}
+x1 = Borne_Chernoff_Pois(1,3)
+r= rpois(10000,1)
+x2=Prob_devia_sans_abs(10000,r,1,3);
+list("Chernoff"=x1,"Monte Carlo"=x2) 
+```
+
+Quand le cas Poisson avec ${\delta=2 \;\;\lambda=2}$
+```{r , include=TRUE}
+x1 = Borne_Chernoff_Pois(2,2)
+r= rpois(10000,2)
+x2=Prob_devia_sans_abs(10000,r,2,2);
+list("Chernoff"=x1,"Monte Carlo"=x2) 
+```
+
+### <--3-->
+
+### 3.a
+
+Remarque: 
+$P(\bar X_n-\mu\ge \delta)  \le  exp(-\frac{n(\mu+\delta)^2}{2\sigma^2})$
+```{r , include=TRUE}
+
+# n est la fois d'échantillons
+Borne_Chernoff_Gaus_n <- function(n,mu,sigma,delta)
+{
+  borne= exp(-n*((mu+delta)**2)/(2*(sigma**2)));
+  return (borne);
+}
+Borne_Chernoff_Pois_n<- function(n,lambda,delta)
+{
+  borne= exp(n*(-lambda*(1+(delta/lambda)*log(1+(delta/lambda))-(delta/lambda))));
+  return (borne);
+}
+
+
+
+
+x1=Borne_Chernoff_Gaus_n(20,0,1,1)
+x2=Borne_Chernoff_Gaus_n(100,0,1,1)
+x3=Borne_Chernoff_Gaus_n(1000,0,1,1)
+y1=Borne_Chernoff_Pois_n(20,1,1)
+y2=Borne_Chernoff_Pois_n(100,1,1)
+y3=Borne_Chernoff_Pois_n(1000,1,1)
+list("Gaus_20"=x1,"Gaus_100"=x2,"Gaus_1000"=x3)
+list("Pois_20"=y1,"Pois_100"=y2,"Pois_1000"=y3)
+```
+### 3.b
+
+estimateur de $\mu$ 
+on met $\mu=la\; moyenne\;de\; Espérence \;empirique$ 
+```{r , include=TRUE}
+#
+esti_de_mu <-function (N,mu,sigma)   
+  { 
+    sample<-array(1:N,c(N,20))
+    moy <- 1:N
+    for (i in 1:N) { 
+        sample[i,] <-rnorm(20,mu,sigma)
+        for(j in 1:20)
+        {
+          sum <- 0
+          moy[i]= sum+sample[i,j]
+        }
+        moy[i]=moy[i]/20
+    } 
+    somme <- 0
+    for(i in 1:N){
+        somme=somme+moy[i]
+    }
+    return(somme/N)
+} 
+list("estimateur de mu quand N est 20"= esti_de_mu(20,0,1))
+list("estimateur de mu quand N est 100"= esti_de_mu(100,0,1))
+list("estimateur de mu quand N est 1000"= esti_de_mu(1000,0,1))
+```
+estimateur de $\lambda$
+on met $\lambda= la\; moyenne\;de\; Espérence \;empirique$
+```{r , include=TRUE}
+esti_de_lambda <-function (N,lambda)   
+  { 
+    sample<-array(1:N,c(N,20))
+    moy <- 1:N
+    for (i in 1:N) { 
+        sample[i,] <-rpois(20,lambda)
+        for(j in 1:20)
+        {
+          sum <- 0
+          moy[i]= sum+sample[i,j]
+        }
+        moy[i]=moy[i]/20
+    } 
+    somme <- 0
+    for(i in 1:N){
+        somme=somme+moy[i]
+    }
+    return(somme/N)
+} 
+list("estimateur de mu quand N est 20"= esti_de_lambda(20,1))
+list("estimateur de mu quand N est 100"= esti_de_lambda(100,1))
+list("estimateur de mu quand N est 1000"= esti_de_lambda(1000,1))
+```
+###Remarque: 
+On peut remarquer que plus la fois d'échantillon est grande,plus l'estimateur est proche que le vrai espérence
+
+
+
+### <--4-->
+
+### 4.a
+```{r , include=TRUE}
+moyenne_empirique<- function(n,vec)
+{
+  sum <- 0
+  for(i in vec)
+    {
+    sum=i+sum
+  }
+  return(sum/n)
+}
+
+for (n in c(20,100,1000,10000)){
+  cauchy <- rcauchy(n,0,1)
+  moy_emp <- moyenne_empirique(n,cauchy)
+  cat("n=",n,"la moyenne empirique est",moy_emp,"\n")
+}
+
+
+```
+La moyenne empirique ne converge pas selon "n"
+
+### 4.b
+
+on considère le “standard Cauchy distribution”,c'est à dire $\theta=0$, la fonction caractéristique sera $\Phi(t)=exp(-|t|)$, on trouve qu'il n'est pas dérivable en 0 ,c'est à dire son ésperence n'exsite pas . 
+
+### 4.c
+```{r , include=TRUE}
+for(n in c(20,100,1000,10000)){
+  cauchy <- rcauchy(n,0,1)
+  s <- sort(cauchy)
+  cat("la médiane de taille n=",n,"est",s[n/2+1],"\n")
+}
+
+```
+on mets estimateur de $\theta=$ médiane 
+
 
