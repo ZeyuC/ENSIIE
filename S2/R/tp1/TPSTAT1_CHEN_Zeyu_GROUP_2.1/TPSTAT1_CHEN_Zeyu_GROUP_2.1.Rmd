@@ -1,0 +1,348 @@
+---
+title: "TP Statistiques 1"
+author: "Charantonis Anastase & Brunel Nicolas & Julien Floquet"
+date: "19 fevrier 2018"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Rappel: on considere que vous avez suivi l'introduction ? R: http://tryr.codeschool.com/ dans son integralit?? (d'ou le QCM dans 10 minutes)
+
+* Utilitaires et informations importantes:\
+  nettoyer son espace de travail: rm(list=ls())\
+  nettoyer sa console: Ctrl +L\
+  retrouver le r?pertoire de travail: getwd()\
+  changer d'emplacement de travail: setwd()
+  
+* Biblio pratique:\
+  http://www3.jouy.inra.fr/miaj/public/formation/initiationRv10.pdf
+  
+* On travaillera sous Rmarkdown. Utilisez RStudio, et cr?ez un fichier RMarkdown. Pour les rapports on attendera un pdf et un RMarkdown avec le m?me nom, du type `TPSTAT1_NOM_PRENOM_GROUPE_NUMERO.format` ou les formats sont Rmd et pdf. Le depot p?dagogique serrat ouvert ? partir de la semaine prochaine. Nous allons ?valuer, pour chaque ?tudiant, 2/5 des rendus de TP choisis al?atoirement.
+
+### Gnenerer des donn??es et les enregistrer
+
+Dans cette partie on va apprendre ? g?n?rer des echantillons issus d'une loi de probabilit?s.
+
+Un echantillon d'une loi de probabilit? est une suite de r?alisations de cette loi. 
+Il est tr?s utile en statistique de pouvoir g?n?rer des variables al?atoires selon diverses lois de probabilit?.
+
+R peut le faire pour un grand nombre de lois via les fonctions de la forme r*func*(n,p1,p2,...) o? *func* indique la loi de probabilit?, n est le nombre de variables ? g?n?rer et p1, p2, ... sont les param?tres de la loi. 
+Pour ce faire on aura besoin de utiliser `help()` pour les fonctions suivantes:
+
+|Lois|Nom sous R|
+|:------|------:|
+|Gaussienne|rnorm(n,mean=0,std=1)|
+|Uniforme|runif(n,min=0,max=1)|
+|Poisson|rpois(n,lambda)|
+|Exponentielle|rexp(n,rate=1)|
+|${\chi}^2$|rchisq(n,df)|
+|Binomiale|rbinom(n,size,prob)|
+|Cauchy|rcauchy(n,location=0,scale=1)|
+
+Retrouvez ces fonctions dans vos notes de probabilit?s (ou sur internet), ?a va vous ?tre utile.
+
+Pour chaque une de ces fonctions g??n??rer une echantillon de 40 donn?es i.i.d. (independantes et identiquement distribu?es), associez les ?? un vecteur inclus dans un `data.frame`, puis utilisez les fonctions `write.csv` et `write.table` pour les enregistrer. Il serrait intelligent de noter les param?tres utilis?s (moyenne,std,...) dans le nom de votre variable/fichier enregistr?.
+```{r , include=TRUE}
+#Generer des donnees et les enregistrer
+x1 <- rnorm(n = 40,mean=0,sd=1)
+x2 <- runif(n = 40,min=0,max=1)
+x3 <- rpois(n = 40,lambda = 1)
+x4 <- rexp(n = 40, rate = 1)
+x5 <- rchisq(n = 40, df=1)
+x6 <- rbinom(n=40,size=100,prob = 0.5)
+x7 <- rcauchy(n=40,location=0,scale=1)
+table <- data.frame(Gaus=x1,Unif=x2,Pois=x3,Exp=x4,X2=x5,Binom=x6,Cauchy=x7)
+write.csv(table,file = "data_lois.txt")
+write.table(table,file = "table_lois.txt")
+```
+
+
+### Charger des donn??es depuis un fichier txt (texte) et csv (comma separated variables)
+
+Nettoyez votre espace de travail. Utilisez les fonctions `read.csv` et `read.table`, pour charger la distribution Gaussienne que vous avez genere. Que remarquez-vous?
+
+Pensez ? utiliser header=TRUE.
+```{r , include=TRUE}
+#Charger des donn??es depuis un fichier txt (texte) et csv (comma separated variables)
+read.csv("data_lois",header = TRUE)
+read.table("table_lois",header = TRUE)
+# si on utilise read.csv, il y aura des virgules entre chque data on a stock??.
+```
+### Tracer les donn??es
+
+Genrrez un vecteur qui contient 10 rralisations de la loi normale N(0,1).
+Tracez les points obtenus en utilisant 'plot', et m?ttant sur l'axe des x un vecteur sequentiel de la taille de votre vecteur.
+
+Que remarquez-vous? (Utiliez la commande 'abline(h=0)')
+
+Tracez ?galement les lignes horizontales 1 et -1. Que remarquez-vous? Combien de points sont en dehors de ces lignes? La m?me chose avec les lignes horizontales 2 et -2, 3 et -3. Que remarquez vous?
+
+Effectuer la m??me chose avec des vecteurs contenant 100 et 1000 valeurs. Que remarquez vous?
+
+Chargez le fichier 'distribution_inconue_1_100_realisations.csv' que vous pouvez trouver dans le m??me emplacement que ce fichier.
+
+Est-ce que vous pouvez conclure quelque chose sur cette distribution, ?? partir d'une visualisation?
+
+Testez avec d'autres distributions. Que remarquez-vous?
+```{r , include=TRUE}
+#Tracer les donn??es
+y <- rnorm(n = 10,mean=0,sd=1)
+plot(y,main ="Gaussienne",ylim = c(-5,5))
+axis(1,at=seq(1,10,1))
+abline(h=c(0,1,-1,2,-2,3,-3),col = ("blue"))
+# tous les 10 points sont proche de 0,en plus ils sont tous entre [-1,1],et il n'y a pas 
+# beaucoup de donne?? aberrantes
+y1 <- rnorm(n = 100,mean = 0,sd = 1)
+plot(y1,main ="Gaussienne",ylim = c(-5,5),xaxt="n")
+axis(1,at=seq(0,100,10))
+abline(h=c(0,1,-1,2,-2,3,-3),col = ("red"))
+# tous les 100 sont tous entre [-3,3], leur degree de dispersion est plus grand que celle de
+# 10 point
+y2 <- rnorm(n = 1000,mean = 0,sd = 1)
+plot(y2,main ="Gaussienne",ylim = c(-5,5),xaxt="n")
+axis(1,at=seq(0,1000,50))
+abline(h=c(0,1,-1,2,-2,3,-3),col = ("green"))
+# il y a des point dont valeur est superieur que 3 ou moins que -3, c'est ?? dire si on 
+# effectue beaucoup de fois d'echantillon , il y aura surement des point aberrantes.
+# par contre , pluspart de point se concentrent sur l'esperecne
+Data <- read.csv("distribution_inconue_1_100_realisations.csv", header=TRUE)
+x <- unlist(Data[2])
+plot(x,main ="inconnu",ylim = c(-10,10),xaxt="n")
+axis(1,at=seq(0,100,10))
+abline(h=c(0,1,-1,4,-4,7,-7),col = ("yellow"))
+# j'ai remarqu?? pluspart presque 80% de point se situent entre [-4,4], il n'y a pas beaucoup 
+# de point aberrantes,sa distribution remsemble ?? celle de Gaussien
+x1 <- rpois(n = 100,lambda = 1)
+plot(x1,main ="Poison",ylim = c(-5,5),xaxt="n")
+axis(1,at=seq(0,100,10))
+abline(h=c(0,1,-1,2,-2,3,-3),col = ("orange"))
+
+x2 <- rexp(n = 100, rate = 2)
+plot(x2,main ="Exponentielle",ylim = c(-5,5),xaxt="n")
+axis(1,at=seq(0,100,10))
+abline(h=c(0,1,-1,2,-2,3,-3),col = ("black"))
+
+x3 <- rbinom(n=100,size=100,prob = 0.02)
+plot(x3,main ="Binominal",ylim = c(-5,5),xaxt="n")
+axis(1,at=seq(0,100,10))
+abline(h=c(0,1,-1,2,-2,3,-3),col= ("purple"))
+#j'ai remarqu?? que pluspart de point sont proche de leur esperence, et plus la variance est grande, plus le degr?? de dispersion est ??lev??
+```
+### Histogrammes
+
+La visualisation des r?sultats precedents nous donnent certaines informations sur la distribution dont ils sont issus.
+
+Les histogrammes sont une autre fa?on d'?valuer visuellement les donn?es d'un echantillon. Ils representent la densit? de distribution de valeurs de r?alisations de notre echantillon par segements. 
+
+Utilisez `help()` pour la fonction `hist()`.
+
+Appliquez la fonction pour l'echantillon de 100 r?alisations que vous avez cr??, et pour 'distribution_inconue_1_100_realisations.csv'. Que remarquez vous?
+
+Testez les differents param??trages de la fonction: breaks et freq.
+
+Effectuez la m??me chose pour des distributions de Cauchy avec des parametrages differents.
+
+Par ailleurs, regardez les fonctions de type d*func*(n,p1,p2,...). Elles peuvent vous donner la distribution th?orique que vous devriez obtenir. Superposez deux plots en utilisant `par(new=TRUE)` puis en plottant la distribution correspondante au histogramme que vous visualisez.
+```{r , include=TRUE}
+#Histogrammess  
+# quand j'ai mis seq(-5,5,2), les deux Histogrammes
+# ont pas la meme form , pourquoi?
+x1 <- rnorm(n = 100,mean=0,sd=1)
+x2 <- runif(n = 100,min=0,max=1)
+x3 <- rpois(n = 100,lambda = 1)
+x4 <- rexp(n = 100, rate = 1)
+x5 <- rchisq(n = 100, df=1)
+x6 <- rbinom(n=100,size=100,prob = 0.5)
+x7 <- rcauchy(n=100,location=0,scale=1)
+Data <- read.csv("distribution_inconue_1_100_realisations.csv", header=TRUE)
+x8 <- unlist(Data[2])
+table <- data.frame(Gaus=x1,Unif=x2,Pois=x3,Exp=x4,X2=x5,Binom=x6,Cauchy=x7,Inconnu=x8)
+write.table(table,file = "data_8_lois.txt")
+x <- seq(-5,5,0.01)
+z1 <- dnorm(x,0,1)
+hist(x1, seq(-5,5,1),freq = T,main ="Gaussien",xlim = c(-5,5),ylim = c(0,100))
+hist(x1, seq(-5,5,1),freq = F,main ="Gaussien",xlim = c(-5,5),ylim = c(0,1))
+par(new=TRUE)
+plot(x,z1,xlim = c(-5,5),type='l',ylim = c(0,1),xlab="",ylab="",yaxt="n",xaxt="n")
+
+hist(x2,breaks = seq(-5,5,1),freq = T,ylim = c(0,100),main ="Uniform")
+hist(x2,breaks = seq(-5,5,1),freq = F,ylim = c(0,1),main ="Uniform")
+par(new=TRUE)
+z2 <- dunif(x,0,1)
+plot(x,z2,xlim = c(-5,5),type='l',ylim = c(0,1),xlab="",ylab="",yaxt="n",xaxt="n")
+
+
+hist(x3, breaks = seq(0,10,1),freq = T,ylim = c(0,100),main ="Poisson")
+hist(x3, breaks = seq(0,10,1),freq = F,ylim = c(0,1),main ="Poisson")
+par(new=TRUE)
+k <- seq(0,100,1)
+z3 <- dpois(k,lambda = 1)
+plot(k,z3,xlim = c(0,10),type='l',ylim = c(0,1),xlab="",ylab="",yaxt="n",xaxt="n")
+
+hist(x4, breaks = seq(-10,10,1),freq = T,ylim = c(0,100),main ="Exponentielle")
+hist(x4, breaks = seq(-10,10,1),freq = F,ylim = c(0,1),main ="Exponentielle")
+par(new=TRUE)
+z4 <- dexp(x,rate = 1)
+plot(x,z4,xlim = c(-10,10),type='l',ylim = c(0,1),xlab="",ylab="",yaxt="n",xaxt="n")
+hist(x5, breaks = seq(-10,10,1),freq = T,ylim = c(0,100),main ="X2")
+hist(x5, breaks = seq(-10,10,1),freq = F,ylim = c(0,1),main ="X2")
+par(new=TRUE)
+z5 <- dchisq(x,df=1)
+plot(x,z5,xlim = c(-10,10),type='l',ylim = c(0,1),xlab="",ylab="",yaxt="n",xaxt="n")
+
+hist(x8, breaks = seq(-10,10,1),freq = T,ylim = c(0,100),main ="inconnu")
+hist(x8, breaks = seq(-10,10,1),freq = F,ylim = c(0,1),main ="inconnu")
+# Le histogramme de "inconnu" resemble beaucoup ?? celui de Gaussien
+```
+### Moments d'ordre
+
+Les moments d'ordre ??lev?? pour une distribution nous donnent des informations li??s ?? la forme des ??cart ?? la moyenne. Si on connait notre loi analytiquement, on peut calculer ses moments. Mais quand on a seulement un ?chantillon i.i.d. d'une loi inconnue, nous devons les estimer.
+
+* Empiriquement:\
+  Skewness n??gatif ---> plus notre densit?? est dissym??trique vers la gauche.\
+  Kurtosis petit ---> Plus l'extremit? de la densit?? va tendre rapidement vers 0.
+  
+  
+  
+Sous R il existe les fonctions `skewness()` et `kurtosis()`.
+Calculez les moments des 4 premiers ordres pours les ?chantillons que vous avez g?n?r? et stockez les r?sultats dans une matrice. Commentez les resultats obtenus et comparez les valeurs th?oriques de ces distributions.\\
+
+|Moment|Ordre|Formule|Estimateur|
+|:------|:------:|:----------------|:-------------------------|
+|Moyenne|1|$E[X]=\int_{-\infty}^{\infty}xdF(x)$|$\bar{x}=\dfrac{1}{n}\sum_{i=1}^{n}x_i$|
+|Variance|2|$E[X^2]=\int_{-\infty}^{\infty}x^2dF(x)$|$\sigma_x^2=\dfrac{1}{n}\sum_{i=1}^{n^2}(x_i-\bar{x})^2$|
+|Skewness|3|$E[X^3]=\int_{-\infty}^{\infty}x^3dF(x)$|$b_1=\dfrac{\dfrac{1}{n}\sum_{i=1}^{n}(x_i-\bar{x})^3}{[\dfrac{1}{n-1}\sum_{i=1}^{n}(x_i-\bar{x})^2]^{3/2}}$|
+|Kurtosis|4|$E[X^4]=\int_{-\infty}^{\infty}x^4dF(x)$|$g_2=\dfrac{\dfrac{1}{n}\sum_{i=1}^{n}(x_i-\bar{x})^4}{[\dfrac{1}{n}\sum_{i=1}^{n}(x_i-\bar{x})^2]^{2}}-3$|
+```{r , include=TRUE}
+library(fBasics)
+table <- read.table("data_8_lois.txt",header = TRUE)
+
+x1 <- unlist(table[1])
+x2 <- unlist(table[2])
+x3 <- unlist(table[3])
+x4 <- unlist(table[4])
+x5 <- unlist(table[5])
+x6 <- unlist(table[6])
+x7 <- unlist(table[7])
+x8 <- unlist(table[8])
+noms <- c("Gus","Unif","Pois","Exp","X2","Binom","Cauchy","Inconnu")
+Mean <- c(mean(x1),mean(x2),mean(x3),mean(x4),mean(x5),mean(x6),mean(x7),mean(x8));
+Var <- c(var(x1),var(x2),var(x3),var(x4),var(x5),var(x6),var(x7),var(x8));
+Skewness <- c(skewness(x1),skewness(x2),skewness(x3),skewness(x4),skewness(x5),skewness(x6),skewness(x7),skewness(x8));
+Kurtosis <- c(kurtosis(x1),kurtosis(x2),kurtosis(x3),kurtosis(x4),kurtosis(x5),kurtosis(x6),kurtosis(x7),kurtosis(x8));
+
+
+m <- data.frame(noms,Mean,Var,Skewness,Kurtosis)
+print(m)
+```
+
+###  Quantiles et Boxplot 
+
+Les moments (surtout de premier et second ordre) peuvent nous donner beaucoup d'informations sur les lois dont sont issus nos ?chantillons. Une autre fa?on de consid?rer cela correspond ? ordonner nos donn?es dans l'?chantillon et de les ?valuer en estimant quelle quantit? de donn?es sont inferieures ou superieures ? une valeur. 
+
+q-Quantile: si on segmente notre distribution de densit? de probabilit?s en $q$ parts de volume ?gal, la valeur en dessous de la quelle se situent $p/q$ des donn?es est nomm?e p-?me quantile. Typiquement on travaille avec des segmentations de notre distribution en quatre ou cent morceaux. Formellement :
+
+Le quantile $\large{x_{\tiny\dfrac{p}{q}}}$ d'un variable al?atoire X est d?fini comme: $\large{P(X\leq x_{\tiny\dfrac{\tiny p}{\tiny q}})}=\dfrac{p}{q}$ \
+ o? de fa?on equivalente: $\large{P(X\geq x_{\tiny\dfrac{\tiny p}{\tiny q}})}=1-\dfrac{p}{q}$.
+
+
+Comme avant, entre connaitre la distribution r?elle et essayer de "faire parler les donn?es", il y a une grande diff?rence. On s'appuie sur notre echantillon pour essayer d'avoir plus d'informations sur nos distributions.
+
+* Quantiles sp?ciaux:\
+  $Q_1$: La valeur en dessous de la quelle on a le quart des valeurs de notre echantillion.\
+  $Q_2$: La valeur en dessous de la quelle on a la moiti? des valeurs de notre echantillion, aussi connue sous le nom de m?diane.\
+  $Q_3$: La valeur en dessous de la quelle on a les trois-quarts des valeurs de notre ?chantillon.
+
+
+Le boxplot nous permet de voir les valeurs entre $Q_1$ et $Q_2$, et $Q_2$ et $Q_3$, ainsi que la moyenne et l'?tendue de $+/- 3 \sigma$. Toute valeur en dehors de ces $+/- 3 \sigma$ est marqu? avec des points individuels.
+
+Regardez l'aide de la fonction `boxplot()` et appliquez la sur les different ensembles que vous avez g?n?r?.
+Pour le tableau precedent, contenant les moments de ordre 1 ? 4, ajoutez 3 colonnes qui contiennent les 3 quantiles.
+```{r , include=TRUE}
+
+#Quantiles et Boxplot
+table <- read.table("data_8_lois.txt",header = TRUE)
+
+x1 <- table[1]
+x2 <- table[2]
+x3 <- table[3]
+x4 <- table[4]
+x5 <- table[5]
+x6 <- table[6]
+x7 <- table[7]
+x8 <- table[8]
+boxplot(unlist(x1),main ="Gaussien")
+c1<-quantile(unlist(x1),c(0.25,0.5,0.75))
+
+boxplot(unlist(x2),main ="Uniform")
+c2<-quantile(unlist(x2),c(0.25,0.5,0.75))
+
+boxplot(unlist(x3),main ="Poisson")
+c3<-quantile(unlist(x3),c(0.25,0.5,0.75))
+
+boxplot(unlist(x4),main ="Exponentielle")
+c4<-quantile(unlist(x4),c(0.25,0.5,0.75))
+
+boxplot(unlist(x5),main ="X2")
+c5<-quantile(unlist(x5),c(0.25,0.5,0.75))
+
+boxplot(unlist(x6),main ="Binonim")
+c6<-quantile(unlist(x6),c(0.25,0.5,0.75))
+
+boxplot(unlist(x7),main ="Cauchy")
+c7<-quantile(unlist(x7),c(0.25,0.5,0.75))
+
+boxplot(unlist(x8),main="inconnu")
+c8<-quantile(unlist(x8),c(0.25,0.5,0.75))
+q<-data.frame(Gaus=c1,Unif=c2,Pois=c3,Exp=c4,X2=c5,Binom=c6,Cauchy=c7,Inconnu=c8)
+rownames(q)<- c("Q1","Q2","Q3")
+Q <-t(q)
+Table_info_loi <-cbind(m,Q)
+print(Table_info_loi)
+```
+### Interpr??tation visuelle
+
+G??n??rez 3 ensembles de 100 individus avec la loi de Cauchy avec des param?trisations differentes. Effectuez toutes les demarches vues dans ce TP. Que remarquez-vous?
+
+```{r , include=TRUE}
+#Interpr??tation visuelle
+cau1 <- rcauchy(n=100,location=0,scale=1)
+cau2 <- rcauchy(n=100,location=0,scale=0.5)
+cau3 <- rcauchy(n=100,location=-2,scale=2)
+x <- seq(-5,4.9,0.1)
+plot(cau1,ylim=c(-10,10))
+abline(h=c(0,2,-2,4,-4,6,-6),col= ("purple"))
+plot(cau2,ylim=c(-10,10))
+abline(h=c(0,2,-2,4,-4,6,-6),col= ("purple"))
+plot(cau3,ylim=c(-10,10)) 
+abline(h=c(0,2,-2,4,-4,6,-6),col= ("purple"))
+
+rcauc1 <-dcauchy(x,location = 0,scale=1)
+plot(x,rcauc1,ylim = c(0,1),main ="Cauchy_0,1")
+rcauc2 <-dcauchy(x,location = 0,scale=0.5)
+plot(x,rcauc2,ylim = c(0,1),main ="Cauchy_0,0.5")
+rcauc3 <-dcauchy(x,location = -2,scale=2)
+plot(x,rcauc3,ylim = c(0,1),main ="Cauchy_-2,2")
+boxplot(cau1,ylim=c(-10,10),main="box_Cauchy_0,1")
+boxplot(cau2,ylim=c(-10,10),main="box_Cauchy_0,0.5")
+boxplot(cau3,ylim=c(-10,10),main="box_Cauchy_-2,2")
+library(fBasics)
+noms = c("cau1 ", "cau2 ", "cau3 ")
+moyenne <- c(mean(cau1), mean(cau2), mean(cau3))
+variance<- c(var(cau1), var(cau2), var(cau3))
+Skewness <- c(skewness(cau1), skewness(cau2), skewness(cau3)) 
+Kurtosis<- c(kurtosis(cau1), kurtosis(cau2), kurtosis(cau3)) 
+f <- data.frame(noms,moyenne, variance, Skewness, Kurtosis)
+print(f)
+#j'ai remarqu?? que le degr??e de dispersion des points de #distribution Cauchy sont tres ??lev??s,surtout pour les 
+#les distribution qui ont un petite sacle .Par contre,
+# plus le sacle est petite, plus la distribution Cauchy est #centr??e sur 0, c'est ?? dire que sa Var est plus petite.En plus , #pour les plotbox,plus la hauteur de boite est petite, plus la var est petite.'location',il determine son esperence.
+```
+
+

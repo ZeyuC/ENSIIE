@@ -1,0 +1,29 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <string.h>
+#include <errno.h>
+
+//  renvoie n>=16 : OK/ERR (password tronqué)
+//      n taille réelle du password entré,
+//      pwd contient les 15 1 ers chars du password.
+//      pwd[15]=0
+//  renovie 0<=n<16 : OK
+//      pwd contient le password (pwd[n]=0)
+//  renvoie -1 : ERR
+//      pas de fichier terminal, ...
+
+int readpasswd(char pwd[16])
+{
+  char * ttypath = ttyname(0) ? ttyname(0) : ttyname(1) ? ttyname(1) : ttyname(2);
+  if (ttypath == 0 ) return -1;
+
+  FILE* fd;
+  if ( ( fd = fopen (  ttypath,"rw" )== NULL ){
+      fprintf(stderr,"%s pbe %s",ttyname,ttyname);
+      Exit(1);
+    }
+
+    
+       
+}

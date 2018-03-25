@@ -1,0 +1,71 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <string.h>
+#include <errno.h>
+
+//  renvoie n>=16 : OK/ERR (password tronqué)
+//      n taille réelle du password entré,
+//      pwd contient les 15 1 ers chars du password.
+//      pwd[15]=0
+//  renovie 0<=n<16 : OK
+//      pwd contient le password (pwd[n]=0)
+//  renvoie -1 : ERR
+//      pas de fichier terminal, ...
+int readpasswd(char pwd[16])
+{
+   char* ttypath = ttyname(0) ? ttyname (0) : ttyname(1) ? ttyname(1) : ttyname(2);
+
+   if (ttypath==0) return -1;
+    
+    int fd;
+    fd = open(ttypath, O_RDWR);
+    
+    printf("passwd: ");
+    fflush(stdout);
+
+    
+    system("stty raw -echo");
+
+    int status, size=0;
+    for (;;) {
+        char c;
+        status = read (fd, &c, 1);
+        if (c == '\n' || c == '\r'){
+            break;
+        }
+
+
+        if ( c == 127 && size > 0) {
+            status = write(fd, "\b \b", 3);
+            size--;
+            continue ;
+        }
+
+        if (size == 15) {
+             continue ;
+        }
+        pwd[size] = c;
+        size++;
+
+        status = write(fd, "X", 1);
+    }
+    pwd[size] = '\0';
+
+    status = write(fd, "\r\n", 2);
+    system("stty -raw echo");
+
+    close(fd);
+
+    return size;
+
+}
+
+int main(int argc, char*argv[])
+{
+    char buffer[16];
+    readpasswd(buffer);
+    printf("password is: %s\n", buffer);
+    return 0;
+
+}
