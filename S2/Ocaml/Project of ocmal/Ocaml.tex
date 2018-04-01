@@ -1,0 +1,788 @@
+\documentclass[12pt]{amsart}
+\usepackage[utf8]{inputenc}
+\usepackage{floatrow}
+
+\usepackage{algorithm, algpseudocode}
+\let\oldReturn\Return
+\renewcommand{\Return}{\State\oldReturn}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\R}{\mathbb{R}}
+\usepackage[T1]{fontenc}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{scrextend}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{stmaryrd}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage{listings}
+\usepackage{wrapfig}
+\usepackage[hmargin=1.25in,vmargin=1.25in]{geometry}
+
+% table of contents setup
+\renewcommand{\contentsname}{Sommaire}
+\usepackage{etoolbox}
+\patchcmd{\thebibliography}{\section*{\refname}}{}{}{}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[frenchb]{babel}
+
+\setlength{\parindent}{0cm}
+\setlength{\parskip}{1ex plus 0.5ex minus 0.2ex}
+\newcommand{\hsp}{\hspace{20pt}}
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+
+\lstset{
+ columns=fixed,       
+ numbers=left,                                        % 在左侧显示行号
+ numberstyle=\tiny\color{gray},                       % 设定行号格式
+ frame=none,                                          % 不显示背景边框
+ backgroundcolor=\color[RGB]{245,245,244},            % 设定背景颜色
+ keywordstyle=\color[RGB]{40,40,255},                 % 设定关键字颜色
+ numberstyle=\footnotesize\color{black},           
+ commentstyle=\it\color[RGB]{0,96,96},                % 设置代码注释的格式
+ stringstyle=\rmfamily\slshape\color[RGB]{128,0,0},   % 设置字符串格式
+ showstringspaces=false,                              % 不显示字符串中的空格
+ language=Caml,                           % 设置语言
+}
+
+
+\title{ Projet IPF :  Termes et rééecriture  }
+\author{CHEN Zeyu}
+\date{03/04/2018}
+
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=blue,
+    urlcolor=red
+}
+
+%%% BEGIN DOCUMENT
+\begin{document}
+	\begin{titlepage}
+		\begin{sffamily}
+			\begin{center}
+
+				\textsc{\LARGE ENSIIE}\\[2cm]
+				\textsc{\Large Rapport de projet d'IPF}\\[1.5cm]
+				\HRule \\[0.4cm]
+				{ \huge \bfseries Projet individuel d'algorithme-programmation IPF\\[0.4cm] }
+				\HRule \\[2cm]
+
+				\begin{minipage}{0.4\textwidth}
+				\begin{flushleft} \large
+					CHEN \textsc{Zeyu}\\
+				\end{flushleft}
+				\end{minipage}
+				\begin{minipage}{0.4\textwidth}
+				\begin{flushright} \large
+					\emph{Enseignant :} C. \textsc{Dubois}\\
+				\end{flushright}
+				\end{minipage}
+
+				\vfill
+				% Bottom of the page
+				{\large 03/04/2018}
+			\end{center}
+		\end{sffamily}
+	\end{titlepage}
+
+
+\maketitle
+
+\tableofcontents 
+ 
+
+\section{Introduction} 
+
+		\begin{addmargin}[2em]{0em}
+		\label{problem}{
+			Termes et réécriture : On dois réaliser un système de réécriture permettant 					d’appliquer de façon auto-matique des règles de réécriture. C'est à dire , donne un 			terme complex et on le simplifie en fonction de certains règle donné.
+			
+			}
+	       \end{addmargin}
+\newpage
+\section{ Développement }
+                 \subsection{Pre-définition}
+		        On a besion de définir un terme d'abord , un terme est soit :
+		        \begin{itemize}[label=-]
+		        \item \textit{une variable} 
+			\item \textit{une constante} 
+			\item \textit{un terme de la forme g(t) d'arite 1} 
+			\item \textit{un terme de la forme f(x,y) d'arite 2}
+		        \end{itemize}
+		       
+		        Donc, le code pour ce type sera :
+		        \newline
+		       \begin{lstlisting}
+type terme = Var of string | Const of string | 
+| Unop of string * terme | Binop of string * terme * terme;;
+			\end{lstlisting}
+	                
+	                On a aussi deux règle de réécriture : 
+	    		 \begin{lstlisting}
+plus(x, zero) -> x
+plus(zero, x) -> x
+plus(succ(x), y) -> plus(x, succ(y)).
+			 \end{lstlisting}
+			 et :
+			  \begin{lstlisting}
+top(push(x, y))  -> x
+pop(push(x, y))  -> y
+alternate(vide, z)  -> z
+alternate(push(x, y), z)  -> push(x, alternate(y, z))			  
+			   \end{lstlisting}
+\newpage		
+	    	\subsection{Question 1 : Test un terme bien formé}	
+  		  On doit écrire les fonction qui teste si un terme est bien formé par 
+                   rapport à une signature.D'abord, il faut creer un type terme et une sigature.
+                 
+                   L'idée c'est que on passe deux arguments signature et un string à une fonction appelée  
+                  \textbf{est\_dedans} , il retourne true si ce string existe dans signature. Et on a une l'autre
+                  fonction appelée  \textbf{test\_terme\_s} qui prends deux arguments signature et un terme t
+                  , on fait match with pour ce terme, quand t est un variable , il retourne true ,sinon, on itère .
+               
+                 \begin{algorithm}
+				\caption{Test un terme bien fomé}
+				\begin{algorithmic}[1]
+					\Function{test\_terme}{$sign,t$}
+						\If{t est Var str}
+							\Return true
+						\EndIf
+						\If{t est Const str}
+							\Return est\_deans (sign,str)
+						\EndIf
+						\If{t est Unop(str,t)}
+							\If {est\_deans (sign,str) and test\_terme (sign,t) sont varis}
+							\Return true
+							\Else	
+							\Return false	
+							\EndIf					
+						\EndIf
+						\If{t est Binop(str1,t1,t2}
+							\If {est\_deans (sign,str) and test\_terme (sign,t1)
+							\State and test\_terme (sign,t2) sont varis}
+							\Return true
+							\Else	
+							\Return false	
+							\EndIf
+						\EndIf			
+					\EndFunction
+				\end{algorithmic}
+			\end{algorithm}
+                  
+ 
+\newpage
+\subsection{Question 2 : Test motif}
+  
+   	          Un motif ne contient qu'une seule occurrence de chaque variable.Donc, pour tester un 			  terme est bien un motif, il faut tester si le nombre d'occurrence de chaque variable. Mon
+	          idée c'est que je retire tous les variables d'un terme dans une liste, et je crée une fonction
+	          pour juger si le nombre d'occurrence de chaque variable est bien 1 en utilisant fold\_right,
+	          si c'est ce cas la , on retourne true , sinon, false. 
+	         
+	         \begin{algorithm}
+				\caption{Test un terme est un motif}
+				\begin{algorithmic}[1]
+					\Function{if\_motif}{$t$}
+					        \State retirer tous les var de t dans une liste l
+						\If{ le nombre d'occurrence de chaque var de l = 1}
+							\Return true
+						\Else
+						        \Return false	        
+						\EndIf						
+					\EndFunction
+				\end{algorithmic}
+			\end{algorithm}
+	          
+      
+	       
+\subsection{Question 3 : Test un motif filtre un terme}
+
+     		 On prends un motif et un terme, et on veut savoir si ce motif
+		 peut bien filtrer t , si oui, on donne une liste de couples de la 
+		 forme (string*terme), sinon, on donne failwith.
+		 
+		 On peut remarquer t est un terme sans variable
+		 \begin{algorithm}
+				\caption{Test un motif filtre un terme}
+				\begin{algorithmic}[1]
+					\Function{subsitution}{$m,t$}
+					       
+						\If{ m est Var v }
+							\Return [(v,t)]	        
+						\EndIf	
+						\If{ m est Const s1 and t est Const s2 }
+							\If{ s1 = s2 }
+							\Return $\emptyset$ 
+							\Else	   
+							\State failwith
+							\EndIf     
+						\EndIf
+						\If{m est Unop(s1,t1) and t est Unop(s2,t2)}
+							\If {s1 = s2}
+							\Return subsitution t1 t2
+							\Else	
+							\State failwith	
+							\EndIf					
+						\EndIf
+						\If{m est Binop(s1,g1,g2) and t est Binop(s2,g2,d2)}
+							\If {s1 = s2}
+						  	\Return subsitution g1 g2  concate subsitution d1 d2
+							\Else	
+							\State failwith	
+							\EndIf
+						\EndIf					
+					\EndFunction
+				\end{algorithmic}
+			\end{algorithm}
+		 
+
+\newpage
+\subsection{Question 4 : Test un systèem de réécriture bien formé}
+ 		  On rappelle qu'une règle de réécriture s’écrit  tg -> td ou tg est un terme linéaire avec 			  variables et td un terme avec ou sans variable
+                   On remarque que si un système de réécriture est bien formé, il suffit qu'on vérifie
+                   tg et td respectent la sigature (cond1) et ils sont motif (cond2). Par ailleurs, on dois vérifier 		  que les variabes dans td sont déjà dans tg (cond3). Voici l'algorithm pour résoudre :
+                   
+                    \begin{algorithm}
+				\caption{Test un systèm de réécriture bien formé}
+				\begin{algorithmic}[1]
+					\Function{test\_sys}{$tg , td$}
+						\If{tg et td respect les signature and ils sont des motif}
+						\State On vérifie que les cond3
+							\If {les variabes dans td sont déjà dans tg}
+							\Return true
+							\Else 
+							\Return false
+							\EndIf	        
+						\EndIf						
+					\EndFunction
+				\end{algorithmic}
+			\end{algorithm}
+\newpage                   
+\subsection{Question 5 : Applique des règle sur un terme}
+                   Un système de règle est représenté par une liste, on peut donc parcourir cette liste
+                   et filter t par tg de chaque règle dans chaque itération. Le problème c'est que le 
+                   résultat de filtre est aussi représenté par une liste. Donc, l'idée c'est que j'ai utilisé
+                   deux fois List.fold\_right pour parcourir respectivement les deux liste, et une fois
+                   on a vérifié que une substitution d'un terme est exisist on appelle une fonction appelé 			  remplace qui sert à remplacer s par td dans chaque itération, après on compare notre
+                   résultat avec notre terme au début, si ils sont identique, stop ,sinon ,on recommence
+                   à le simplifier. Voici l'algorithm pour résoudre:
+
+			
+		   \begin{algorithm}
+				\caption{Applique des règle sur un terme}
+				\begin{algorithmic}[1]
+					\Function{app\_regle}{$regle,t$}
+					        \State Soit r est un règle de tous les règles, et ti est le résultat obtenu 						\State après filtré t par r
+						\If{ti égale t}
+							\Return ti
+							\Else 
+							\Return app\_regle regle ti	        
+						\EndIf						
+					\EndFunction
+				\end{algorithmic}
+			\end{algorithm}
+\newpage		
+\subsection{Question 6 : Affichage des étapes de simplification}
+ 		  Pour imprimer la suite des termes obtenus au cours de la
+		  réécriture ainsi que le numéro de la règle qui a permis de l’obtenir. L'idée c'est qu'on
+		  essaie d'obtenir une liste de type couple (int*terme) contenant un numéro qui indique
+		  que le nièm règle peut filtrer t et une terme qui été simplifié par cette règle.On peut 
+		  donc imprimer chaque étape de simplification 	en utilisant List.map.
+		  
+		  \begin{algorithm}
+				\caption{Affichage des étapes de simplification}
+				\begin{algorithmic}[1]
+					\Function{couple\_print}{$regle,t,n$}
+					\While{il exsiste une règle r\_n peut bien filter t }
+					\State n est le position de cette règle ti est une terme simplifié par r
+						\If{n != 0}
+							\Return (n, ti):: couple\_print regle ti 1
+							\Else 
+							\Return $\emptyset$  
+						\EndIf
+					\EndWhile		
+					\EndFunction
+					\\
+					\Function{print}{$regle,t$}
+					\State Soit l = couple\_print regle t 1
+					\For{$ y \in l$}
+						\State imprime y  
+					\EndFor	
+					\EndFunction
+				\end{algorithmic}
+			\end{algorithm}	  
+		  
+			
+\subsection{Question 7 : Test deux terme }
+		 C'est une question relativement simple, on juste appelle la fonction précédent et on
+		 compare notre résultat, true si ils sont pareil ,false sinon
+			 \begin{algorithm}
+				\caption{Test deux terme}
+				\begin{algorithmic}[1]
+					\Function{compare\_terme}{$t1,t2$}
+					        \State Soit (t1\_s,t2\_s) et les termes simplifié pas regle
+						\If{t1\_s égale t2\_s}
+							\Return true
+							\Else 
+							\Return false
+						\EndIf						
+					\EndFunction
+				\end{algorithmic}
+			\end{algorithm}
+			
+\subsection{Question 8 : Amélioration}
+                  On vérifie que si le terme simplifié par les règles est identique que le terme complet,
+                  si oui, on vérifie si les règle peuvent s'appliquer sur un des sou-termes du terme 
+                  complet. 
+                  
+		 \begin{algorithm}
+				\caption{ Amélioration}
+				\begin{algorithmic}[1]
+					\Function{ new\_app\_regle}{$regle,t$}
+					        \State Soit t\_a et les termes simplifié pas règle
+						\If{t\_a égale t}
+							\State on applique les règle sur les sou-termes
+							\Else 
+							\Return t\_a
+						\EndIf						
+					\EndFunction
+				\end{algorithmic}
+		\end{algorithm}
+\newpage	
+
+\section{ Conclusion}
+  	      	L'objectif de ce projet était de simplifier une terme à l'aide d'un système de réécriture.
+		Pour ces huit question , j'ai bien réalisé et testé correctement.
+		Cependant, le système de réécriture qu'on utilise ne sert qu'à simplifier le terme qu'on
+		a défini, Var , Const , Unop et Binop, mais pas pour les fonction avec plus d'arguments.
+\section{ Annexes}
+                              
+\subsection{Les interfaces et les tests de Q1} Quatre fonctions
+
+\begin{lstlisting}
+         
+(** fst
+@param un couple (a,b)
+@return  le premier element d'un couple
+*)
+let fst (a,b) = a;;
+
+(** est_dedans
+@param un list l un string str
+@return true si str est dans l false sinon
+*)
+let rec est_dedans l str = match l with
+  [] -> false
+| h::r -> if str = (fst h) then true
+          else est_dedans r str;;
+          
+(** test_terme_s
+@param un signature sign , un terme t
+@return : true si t satisfait le signature false sinon
+*)
+let rec test_terme_s sign t = match t with
+   |Var str -> true
+   |Const str -> est_dedans sign str
+   |Unop(str,t)-> if est_dedans sign str && test_terme_s sign t 
+                  then true else false
+   |Binop(str,t1,t2)-> 
+                  if (est_dedans sign str) && 
+                  (test_terme_s sign t1) && (test_terme_s sign t2) 
+                  then true else false;;
+                  
+(** test_terme
+@param un terme t
+@return true si t est dans terme bien forme
+*)                        
+let test_terme t = test_terme_s signature t;; 
+             \end{lstlisting}
+
+     \begin{lstlisting}
+(**---------test------------
+let terme1 = 
+Binop("f", Binop("f", Var "x",Binop("f",Unop("g",Var "t"),Const "a")), Var "u");; 
+
+test_terme terme1;; (*--true--**)                        
+let terme2 = Binop("t",Const "a",Var "e");; 
+
+test_terme terme2;; (*--false--**)          
+*)     
+ \end{lstlisting}
+ 
+\subsection{Les interfaces et les tests de Q2}   Quatre fonctions
+\begin{lstlisting}
+(** list_var
+@param    un terme t
+@return : une liste qui contient tous les variable de terme t
+*)
+let rec list_var t  = match t with
+| Var str ->  [str] 
+| Const str -> []
+| Unop(str,t)-> list_var t 
+| Binop(str,t1,t2)-> (list_var t1 )@(list_var t2 );;
+
+(** nb_occ
+@param    une liste t et un 'a s
+@return : le nombre d'occurance de s dans l
+*)
+let rec nb_occ l s = List.fold_right
+(function x->function y-> if x =s then y+1 else y) l 0;;
+
+(** if_doule
+@param    une liste l
+@return : true si le nombre de tous les element de l est 1 false sinon 
+*)
+let if_doule l  = let l1 = List.map 
+(function x -> if nb_occ t x =1 then true else false) l in 
+if nb_occ l1 false >=1 then false else true ;;
+
+(** if_motif
+@param  : une terme t
+@return : true si t est motif false sinon
+*)
+let rec if_motif t = let l = list_var t in if_doule l;;  
+
+    \end{lstlisting}
+  \begin{lstlisting}
+(**---------test------------*
+let terme1 = Binop ("f",Var "x", Unop ("g", Var "x"));;
+if_motif terme1;; (* bool = false*)
+let terme2 = Binop ("f",Var "u", Unop ("g", Var "y"));;
+if_motif terme2;; (* bool = true*)
+let terme3 = Unop ("g",Var "x");;
+if_motif terme3;; (* bool = true*)
+*)
+ \end{lstlisting}   
+              
+\subsection{Les interfaces et les tests de Q3}   une fonctions
+
+\begin{lstlisting}
+(*compare directement m et t*)
+
+let rec substitution m t  = match (m, t) with
+  | (Var v1, str) -> [(v1, str)]
+  | (Const s1, Const s2) ->if s1 = s2 then [] 
+                           else failwith "Ne filtre pas" 
+  | (Unop(s1, t1), Unop(s2, t2)) -> if s1 = s2 then (substitution t1 t2) 
+                           else failwith "Ne filtre pas "
+  | (Binop(s1, g1, d1), Binop(s2, g2, d2)) -> if s1 = s2 
+                           then (substitution g1 g2)@(substitution d1 d2) 
+                           else failwith "Ne filtre pas"
+  | _ -> failwith "Ne filtre pas";;
+ \end{lstlisting}              
+ 
+ 
+\begin{lstlisting}
+(**---------test------------*
+substitution motif1 terme1;; 
+(*motif1=Binop ("f", Var "x", Const "a")*)
+(*terme1=Binop ("f", Binop ("f", Const "a", Const "b"), Const "b"))*)
+(*(string * terme) list = [("x", Binop ("f", Const "a", Const "b"))]*)
+
+substitution motif2 terme1;;
+(*motif2=Binop ("f", Binop ("f", Var "x", Var "y"), Const "a")*)
+(*Exception: Failure "m ne filtre pas t"*)
+
+substitution motif2 terme3;;
+
+(*terme3=Binop ("f",Binop ("f", Binop ("f", Const "a",
+ Const "b"),Binop ("f", Const "a", Const "b")),Const "a")*)
+(*(string * terme) list =
+[("x", Binop ("f", Const "a", Const "b"));("y", Binop ("f", Const "a", Const "b"))]*)
+*)
+ \end{lstlisting}
+ 
+ \subsection{Les interfaces et les tests de Q4}   deux fonctions
+
+(** compare\\
+@param  : deux liste l1 l2\\ 
+@return : true si l2 appartient à l1 false sinon\\
+*)
+\begin{lstlisting}
+let rec compare l1 l2 = match (l1,l2) with
+| ([],[]) ->true
+| (_,[]) -> true
+| ([],_) -> false
+| (h1::r1,h2::r2)-> if h1 = h2 then (compare r1 r2) else false;;
+
+ \end{lstlisting}  
+ 
+ (** test\_sys\\
+@param  : deux deux terme tg td \\
+@return : true si un système de réécriture est bien formé \\
+*)
+ \begin{lstlisting}
+ let test_sys tg td = (test_terme_s sign_plus tg) && 
+ (test_terme_s sign_plus td) && (if_motif tg) 
+ && (if_mo tif td) && let (l1,l2) = (list_var tg,list_var td) 
+in compare l1 l2 ;;
+  \end{lstlisting}  
+ 
+  \begin{lstlisting}
+
+(**---------test------------*
+let tg1 = Binop("plus",Var "x",Const "zero");;
+let td1 = Var "x";;
+let tg2 = Binop("plus",Const "zero", Var "x");;
+let td2 = Var "x";;
+let tg3 = Binop("plus",Unop ("succ",Var "x"),Var "y");;
+let td3 = Binop("plus",Var "x",Unop ("succ",Var "y"));;
+
+test_sys tg1 td1;; (*bool = true*)
+test_sys tg2 td2;; (*bool = true*)
+test_sys tg3 td3;; (*bool = true*)
+*)
+  \end{lstlisting}  
+  
+  \subsection{Les interfaces et les tests de Q5}   huit fonctions
+
+\begin{lstlisting}
+(** test_sys
+@param  : un couple l
+@return : return premier element de l 
+*)
+let fst l = match l with (c1,c2) -> c1;;
+
+(** test_sys
+@param  : un couple l
+@return : return 2ieme element de l 
+*)
+let snd l = match l with (c1,c2) -> c2;;
+
+(** sub_override 
+* - : terme -> terme -> (string * terme) list = <fun>
+* - the override for substitution so that we can 
+    trait the result for the case of "fail" 
+@param  : un motif m un terme t
+@return : une liste de type (string*terme) 
+*)
+let rec sub_override m t  = match (m, t) with
+  | (Var v1, str) -> [(v1, str)]
+  | (Const s1, Const s2) ->if s1 = s2 then []
+                           else [("false",Var "false")]
+  | (Unop(s1, t1), Unop(s2, t2)) -> if s1 = s2 then (sub_override t1 t2) 
+                           else [("false",Var "false")]
+  | (Binop(s1, g1, d1), Binop(s2, g2, d2)) -> if s1 = s2 
+                           then (sub_override g1 g2)@(sub_override d1 d2) 
+                           else [("false",Var "false")]
+  | _ -> [("false",Var "false")];;
+
+(** if_exsist_sub
+- : (string * 'a) list -> bool = <fun> 
+@param  : une liste l qui conient le resultat de sub_override
+@return : true si il n'y a pas de false, false sinon
+*)
+let rec if_exsist_sub l =  match l with
+| [] ->true
+| h::r -> if (fst h) = "false" then false else if_exsist_sub r;;  
+
+(** remplace
+- : string * terme -> terme -> terme = <fun>
+@param  : un couple s de type string*terme , un terme td
+@return : remplace td en fonction de s
+*)
+let rec remplace s td = match td with
+| Var x -> if x = (fst s) then (snd s) else Var x
+| Const a-> Const a 
+| Unop (u,t) -> Unop(u,(remplace s t))
+| Binop(b,t,d) -> Binop(b,(remplace s t),(remplace s d) );;
+
+(** app_une_regle
+- : terme * terme -> terme -> terme = <fun>
+- : n'applique qu'une regle pour un terme t
+@param  : une regle regle_1 un terme t
+@return : un terme qui est transforme par regle_1
+*)
+let app_une_regle regle_1 t = let l = (sub_override (fst regle_1) t) in  
+if (if_exsist_sub l) then List.fold_right
+(function s -> function td-> (remplace s td)) l (snd regle_1) else t;;
+
+(** app_de_la_regle 
+- : (terme * terme) list -> terme -> terme = <fun>
+- : applique tous les regles dans regle pour t
+@param  : une liste de regle regle un terme t
+@return : un terme qui est transforme par regle une fois
+*)
+let app_de_la_regle regle t = List.fold_right
+(function r-> function t-> let l =  (sub_override (fst r) t) in
+if (if_exsist_sub l) then app_une_regle r t else t ) regle t;; 
+
+(** app_regle 
+- : (terme * terme) list -> terme -> terme = <fun>
+@param  : une liste de regle regle un terme t
+@return : un terme qui est transforme par regle jusqu'a qu'aucune des
+regles de la liste ne s'applique plus
+*)
+let rec app_regle regle t = 
+  let t_i = app_de_la_regle regle t in if ( t_i = t ) then t else app_regle regle t_i;;
+
+  \end{lstlisting}  
+
+  \begin{lstlisting}
+
+(**---------test------------*
+
+let regle_plus = [(Binop("plus",Var "x",Const "zero"),Var "x");
+(Binop("plus",Const "zero", Var "x"),Var "x");
+(Binop("plus",Unop ("succ",Var "x"),Var "y"),
+Binop("plus",Var "x",Unop ("succ",Var "y")))];;
+
+let regle_piles = [(Unop("top",Binop("push",
+Unop("succ",Const "zero"),Var "y")),Var "x");
+(Unop("pop",Binop("push",Unop("succ",Const "zero"),Var "y")),Var "y");
+
+(Binop("alternate",Const "vide",Var "z"),Var "z");
+(Binop("alternate",Binop("push",Unop("succ",Const "zero"),
+Var "y"),Var "z"),Binop("push",Unop("succ",Const "zero"),
+Binop("alternate",Var "y",Var "z"))) ];;
+
+let t = Binop("plus",Const "zero",Binop("plus",
+Unop("succ",Const "zero"),Unop("succ",Const "zero")));;
+
+let p_1= Unop("top",Binop("push",
+Unop("succ",Const "zero"),Var "y"));;
+let p_2 =Binop("alternate",Binop("push",
+Unop("succ",Const "zero"),Var "y"),Var "z");;
+
+app_regle regle_plus t (* Unop ("succ",
+ Unop ("succ", Const "zero"))*)
+
+app_regle regle_piles p_1;; (*Var "x"*)
+app_regle regle_piles p_2;; (* Binop ("push", Unop ("succ", Const "zero"),
+ Binop ("alternate", Var "y", Var "z"))*)
+
+sub_override (fst r1) t;;
+if_exsist_sub (sub_override (fst r2) t);;
+app_de_la_regle regle t;;
+
+app_une_regle r2 t2;;
+sub_override  (fst r2) terme;;
+*)
+  \end{lstlisting}  
+  
+  \subsection{Les interfaces et les tests de Q6}  cinq fonctions
+    \begin{lstlisting}
+(**terme_to_string
+ - : terme -> string = <fun
+ @param: un terme t
+ @return: un string
+ *)
+let rec terme_to_string t = match t with
+ |Const a -> a
+ |Var x ->x
+ |Unop (a,b) ->a ^"(" ^ (terme_to_string b) ^")"
+ |Binop(a,b,c)->
+ a ^ "(" ^ (terme_to_string b) ^ ", "^ (terme_to_string c) ^ ")";; 
+
+(**print_terme
+ - : terme -> int -> unit 
+ @param: un terme t un entier n
+ @imprimer le terme lisible
+ *)
+
+let print_terme t n = 
+Printf.printf "par r%d : %s \n" n (terme_to_string t);;
+
+(**count_n
+ - : (terme * 'a) list -> terme -> int -> int
+ @param: une regle un terme un entier n
+ @return un entier qui indique que niem regle peut filtre t
+ *)
+let rec count_n regle t n = match regle with
+| [] -> (0,t)
+| h::r -> let l = (sub_override (fst h) t) in 
+          if (if_exsist_sub l) then (n,(app_une_regle h t)) 
+          else count_n r t (n+1);;
+
+(**couple_print
+ - : (terme * terme) list -> terme -> int -> (int * terme) list
+ @param: une regle un terme un entier n
+ @return une liste de tpye (int*terme) qu'on va print 
+ *)
+let rec couple_print regle t n= let (n,ti) = (count_n regle t n) in  
+        if (n != 0) then (n,ti)::(couple_print regle ti 1)
+        else [];;
+
+
+(**print
+ - : (terme * terme) list -> terme -> unit list
+ @param: une regle un terme 
+ @return une liste de tpye unit qui contient les etape de 
+    simplicaiton 
+ *)
+let rec print regle t = let l = (couple_print regle t 1) in List.map
+        (function x->  print_terme (snd x) (fst x)) l ;;
+
+
+(**---------test------------*
+print regle t ;; 
+
+(*t =Binop ("plus", Const "zero",Binop ("plus", Unop ("succ", 
+Const "zero"), Unop ("succ", Const "zero")))*)
+
+(*par r2 : plus(succ(zero), succ(zero)) 
+par r3 : plus(zero, succ(succ(zero))) 
+par r2 : succ(succ(zero))*)
+*)
+\end{lstlisting}
+
+
+ 
+  
+  \subsection{Les interfaces et les tests de Q7}   une fonctions
+
+\begin{lstlisting}
+(**compare_terme
+ - : terme -> terme -> bool
+ @param: deux terme
+ @return true si ils sont identiques apres simplification false sinon
+ *)
+let compare_terme t1 t2 = let (ts_1,ts_2) = 
+(app_regle regle t1,app_regle regle t2) in ts_1 = ts_2 ;;
+
+(**---------test------------*
+
+(**
+* t = Binop("plus",Const "zero",Binop("plus",
+Unop("succ",Const "zero"),Unop("succ",Const "zero")));;
+* app_regle regle t;;
+* t1 =Binop ("plus", Unop ("succ", Const "zero"),
+ Unop ("succ", Const "zero"));;
+*)
+compare_terme t1 t;; (*- : bool = true*)
+
+(**
+  * t2 = Unop("succ",Const "zero")
+*)
+let t2 = Unop("succ",Const "zero");;
+compare_terme t2 t;; (*- : bool = false*)
+*)
+ \end{lstlisting}  
+ 
+   \subsection{Les interfaces et les tests de Q8}   une fonctions
+
+\begin{lstlisting}
+let p= Binop("plus",Binop("plus",Const "zero",
+Unop("succ",Const "zero")),Unop("succ",Const "zero"));;
+ 
+let rec new_app_regle regle t = 
+  let t_a = app_regle regle t in if t_a <> t then t_a 
+    else match t_a with
+    | Var v -> Var v
+    | Const a -> Const a
+    | Unop(u,s)-> Unop(u,s)
+    | Binop(b,s1,s2) ->
+      new_app_regle regle (Binop (b,new_app_regle regle s1,
+      new_app_regle regle s2));;
+
+(**---------test------------*
+new_app_regle regle p;;
+(*terme = Unop ("succ", Unop ("succ", Const "zero"))*)
+
+ \end{lstlisting}  
+\end{document}
