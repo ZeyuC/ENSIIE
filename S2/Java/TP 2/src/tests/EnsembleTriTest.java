@@ -25,7 +25,12 @@ import org.junit.runners.Parameterized.Parameters;
 
 import ensembles.EnsembleTri;
 import ensembles.EnsembleTriFactory;
+import ensembles.EnsembleTriListe;
+import ensembles.EnsembleTriListe2;
 import ensembles.EnsembleTriTableau;
+import ensembles.EnsembleTriTableau2;
+import ensembles.EnsembleTriVector;
+import ensembles.EnsembleTriVector2;
 
 /**
  * Classe de test complémentaire pour tous les types d'ensembles triés :
@@ -64,12 +69,12 @@ public class EnsembleTriTest
 		 * de votre avancement (Attention la dernière ligne non commentée
 		 * ne doit pas avoir de virgule)
 		 */
-//		EnsembleTriVector.class,
-//		EnsembleTriVector2.class,
-		EnsembleTriTableau.class
-//		EnsembleTriTableau2.class,
-//		EnsembleTriListe.class,
-//		EnsembleTriListe2.class
+		EnsembleTriVector.class,
+		EnsembleTriVector2.class,
+		EnsembleTriTableau.class,
+		EnsembleTriTableau2.class,
+		EnsembleTriListe.class,
+		EnsembleTriListe2.class
 	};
 
 	/**

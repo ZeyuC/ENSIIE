@@ -1,6 +1,7 @@
 package ensembles;
 
 import java.util.Collection;
+import java.util.Iterator;
 
 import tableaux.Tableau;
 
@@ -12,14 +13,13 @@ public class EnsembleTriTableau<E extends Comparable<E>> extends
 		EnsembleTableau<E> implements EnsembleTri<E>
 {
 
+	
 	/**
 	 * Constructeur par défaut d'un ensemble trié utilisant un {@link Tableau}
 	 */
 	public EnsembleTriTableau()
 	{
-		/*
-		 * TODO Compléter si besoin ...
-		 */
+		super();
 	}
 
 	/**
@@ -28,9 +28,7 @@ public class EnsembleTriTableau<E extends Comparable<E>> extends
 	 */
 	public EnsembleTriTableau(Iterable<E> elements)
 	{
-		/*
-		 * TODO Compléter ...
-		 */
+		super(elements);
 	}
 
 	/**
@@ -47,10 +45,13 @@ public class EnsembleTriTableau<E extends Comparable<E>> extends
 	@Override
 	public boolean ajout(E element)
 	{
-		/*
-		 * TODO Compléter ...
-		 */
-		return false;
+	
+		if(element == null || contient(element))
+			return false;
+		else {
+			tableau.insertElement(element, rang(element));
+			return true;
+		}
 	}
 
 	/**
@@ -63,20 +64,30 @@ public class EnsembleTriTableau<E extends Comparable<E>> extends
 	 * @see ensembles.EnsembleGenerique#equals(java.lang.Object)
 	 */
 	@Override
-	public boolean equals(Object obj)
-	{
-		/*
-		 * TODO Remplacer par ...
-		 * 	1 - obj == null ? ==> false
-		 * 	2 - obj == this ? ==> true
-		 * 	3 - obj est une instance de Ensemble<?>
-		 * 		- caster obj en Ensemble<?>
-		 * 		- si obj et this ont exactement les mêmes éléments dans le
-		 * 		  même ordre ==> true
-		 * 		- sinon ==> false;
-		 * 	  - sinon (obj n'est pas un Ensembble<?>) ==> false
-		 */
-		return false;
+	public boolean equals(Object obj) {
+		if(obj == null)
+			return false;
+		if(obj == this)
+			return true;
+		if(!(obj instanceof Ensemble<?>))
+			return false;
+		
+		Ensemble<?> other = (Ensemble<?>) obj;
+			
+		Iterator<E> it = iterator();
+		Iterator<?> it2 = other.iterator();
+
+		while(it.hasNext()) {
+			if(!it2.hasNext())
+				return false;
+			if(!it.next().equals(it2.next()))
+				return false;
+		}
+			
+		if(it2.hasNext())
+			return false;
+			
+		return true;
 	}
 
 	/**
@@ -92,13 +103,12 @@ public class EnsembleTriTableau<E extends Comparable<E>> extends
 	 * @see ensembles.EnsembleGenerique#hashCode()
 	 */
 	@Override
-	public int hashCode()
-	{
+	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		/*
-		 * TODO Compléter ...
-		 */
+		for(E elt : this)
+			result = (prime * result) + (elt == null ? 0 : elt.hashCode());
+		
 		return result;
 	}
 }

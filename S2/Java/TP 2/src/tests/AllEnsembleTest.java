@@ -27,8 +27,16 @@ import org.junit.runners.Parameterized.Parameters;
 
 import ensembles.Ensemble;
 import ensembles.EnsembleFactory;
+import ensembles.EnsembleListe;
 import ensembles.EnsembleTableau;
 import ensembles.EnsembleTri;
+import ensembles.EnsembleTriListe;
+import ensembles.EnsembleTriListe2;
+import ensembles.EnsembleTriTableau;
+import ensembles.EnsembleTriTableau2;
+import ensembles.EnsembleTriVector;
+import ensembles.EnsembleTriVector2;
+import ensembles.EnsembleVector;
 
 /**
  * Classe de test pour tous les types d'ensembles :
@@ -71,14 +79,14 @@ public class AllEnsembleTest
 		 * ne doit pas avoir de virgule)
 		 */
 		EnsembleTableau.class,
-//		EnsembleVector.class,
-//		EnsembleListe.class,
-//		EnsembleTriVector.class,
-//		EnsembleTriVector2.class,
-//		EnsembleTriTableau.class
-//		EnsembleTriTableau2.class,
-//		EnsembleTriListe.class,
-//		EnsembleTriListe2.class
+		EnsembleVector.class,
+		EnsembleListe.class,
+		EnsembleTriVector.class,
+		EnsembleTriVector2.class,
+	    EnsembleTriTableau.class,
+		EnsembleTriTableau2.class,
+		EnsembleTriListe.class,
+		EnsembleTriListe2.class
 	};
 
 	/**

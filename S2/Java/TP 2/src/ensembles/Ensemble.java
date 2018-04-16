@@ -88,6 +88,9 @@ public interface Ensemble<E> extends Iterable<E>
 	 */
 	public default boolean contient(Ensemble<E> ensemble)
 	{
+		if (ensemble==null)
+			return false;
+		
 		for(Iterator<E> i = ensemble.iterator();i.hasNext();)
 		{
 			if (this.contient(i.next()))
@@ -107,10 +110,11 @@ public interface Ensemble<E> extends Iterable<E>
 	 */
 	public default void efface()
 	{
-		for(Iterator<E> it= iterator(); it.hasNext();)
-		{
-		   it.next();
-		   it.remove();
+		Iterator<E> it = iterator();
+
+		while(it.hasNext()) {
+			it.next();
+			it.remove();
 		}
 	}
 
@@ -219,20 +223,14 @@ public interface Ensemble<E> extends Iterable<E>
 	public static <E> void complement(Ensemble<E> ens1, Ensemble<E> ens2, Ensemble<E> res)
 	{
 		Iterator<E> it1= ens1.iterator();
-	
 		E current;
 		while(it1.hasNext())
 		{
 			current = it1.next();
-			if(ens2.contient(current))
-			{
-				continue;
-			}
-			else 
-			{
+			if(!ens2.contient(current))
 				res.ajout(current);
-			}
 		}
+		
 	}
 
 	/**
@@ -253,11 +251,9 @@ public interface Ensemble<E> extends Iterable<E>
 		 * 	- Soit (A - B) ∪ (B - A)
 		 * 	- Soit (A ∪ B) - (B ∩ A)
 		 */
-	    Ensemble<E> res1 = null,res2 = null,res = null;
-	    complement(ensemble,this,res1);
-	    complement(this,ensemble,res2);
-	    union(res1,res2,res);
-		return res;
+
+		return complement(ensemble).union(ensemble.complement(this));
+
 	}
 
 	/**

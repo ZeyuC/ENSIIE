@@ -62,13 +62,11 @@ public class EnsembleTableau<E> extends EnsembleGenerique<E>
 		/*
 		 * TODO Compléter ...
 		 */
-		if(element==null)
+		if(element==null||contient(element))
 			return false;
-		
-		if(this.contient(element))
-		return false;
 		else {
 			tableau.ajouter(element);
+			return true;
 		}
 	}
 
@@ -85,7 +83,8 @@ public class EnsembleTableau<E> extends EnsembleGenerique<E>
 		 * TODO Remplacer par une implémentation plus performante que celle
 		 * fournie par défaut par l'interface Ensemble<E>
 		 */
-		return 0;
+		int count = tableau.taille();
+		return count;
 	}
 
 	/**
@@ -109,7 +108,11 @@ public class EnsembleTableau<E> extends EnsembleGenerique<E>
 		 * 	  l'on a déjà écrit
 		 * 	- le renvoi de résultat
 		 */
-		return null;
+		Ensemble<E> resultat = new EnsembleTableau<E>();
+		
+		Ensemble.union(this, ensemble, resultat);
+		
+		return resultat;
 	}
 
 	/**
@@ -134,7 +137,11 @@ public class EnsembleTableau<E> extends EnsembleGenerique<E>
 		 * 	  ce que l'on a déjà écrit
 		 * 	- le renvoi de résultat
 		 */
-		return null;
+	    Ensemble<E> resultat =new EnsembleTableau<E>();
+	    
+	    Ensemble.intersection(this, ensemble, resultat);
+	    
+		return resultat;
 	}
 
 	/**
@@ -159,7 +166,9 @@ public class EnsembleTableau<E> extends EnsembleGenerique<E>
 		 * 	  ce que l'on a déjà écrit
 		 * 	- le renvoi de résultat
 		 */
-		return null;
+		Ensemble<E> resultat =new EnsembleTableau<E>();
+		Ensemble.complement(this, ensemble, resultat);
+		return resultat;
 	}
 
 	/**
@@ -174,6 +183,7 @@ public class EnsembleTableau<E> extends EnsembleGenerique<E>
 		/*
 		 * TODO Remplacer par la création d'un iterateur du tableau
 		 */
-		return null;
+		Iterator<E> it = tableau.iterator();
+		return it;
 	}
 }

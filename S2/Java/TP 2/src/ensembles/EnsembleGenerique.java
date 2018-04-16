@@ -2,9 +2,7 @@ package ensembles;
 
 import java.util.Iterator;
 
-import org.hamcrest.core.IsInstanceOf;
 
-import com.sun.org.apache.bcel.internal.generic.INSTANCEOF;
 
 /**
  * Ensemble Générique implémentant partiellement les opérations communes à tous
@@ -144,8 +142,11 @@ public abstract class EnsembleGenerique<E> implements Ensemble<E>
 		/*
 		 * TODO Compléter ...
 		 */
+		String seperator = "";
 		for(Iterator<E> it = iterator();it.hasNext();)
 		{
+			sb.append(seperator);
+			seperator=", ";
 			sb.append(it.next());
 		}
 		sb.append("]");

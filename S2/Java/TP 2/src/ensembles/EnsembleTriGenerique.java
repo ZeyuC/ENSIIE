@@ -30,10 +30,12 @@ extends EnsembleGenerique<E> implements EnsembleTri<E>
 	@Override
 	public boolean ajout(E element)
 	{
-		/*
-		 * TODO Compléter ...
-		 */
+		if (element==null || contient(element))
 		return false;
+		else {
+			insererAuRang(element, rang(element));
+			return true;
+		}
 	}
 
 	/**
@@ -71,7 +73,29 @@ extends EnsembleGenerique<E> implements EnsembleTri<E>
 		 * 			- sinon ==> false;
 		 * 	- sinon (obj n'est pas un Ensemble<?>) ==> false
 		 */
-		return false;
+		if(obj == null)
+			return false;
+		if(obj == this)
+			return true;
+		if(!(obj instanceof Ensemble<?>))
+			return false;
+		
+		Ensemble<?> o = (Ensemble<?>) obj;
+			
+		Iterator<E> it = iterator();
+		Iterator<?> it2 = o.iterator();
+
+		while(it.hasNext()) {
+			if(!it2.hasNext())
+				return false;
+			if(!it.next().equals(it2.next()))
+				return false;
+		}
+			
+		if(it2.hasNext())
+			return false;
+			
+		return true;
 	}
 
 	/**
@@ -91,9 +115,9 @@ extends EnsembleGenerique<E> implements EnsembleTri<E>
 	{
 		final int prime = 31;
 		int result = 1;
-		/*
-		 * TODO Compléter ...
-		 */
+		for(E elt : this)
+			result = (prime * result) + (elt == null ? 0 : elt.hashCode());
+		
 		return result;
 	}
 
@@ -111,7 +135,7 @@ extends EnsembleGenerique<E> implements EnsembleTri<E>
 		/*
 		 * TODO Remplacer par l'implémentation ...
 		 */
-		return null;
+		return ensemble.union(autre);
 	}
 
 	/**
@@ -130,7 +154,8 @@ extends EnsembleGenerique<E> implements EnsembleTri<E>
 		/*
 		 * TODO Remplacer par l'implémentation ...
 		 */
-		return null;
+		return ensemble.intersection(autre);
+
 	}
 
 	/**
@@ -148,7 +173,7 @@ extends EnsembleGenerique<E> implements EnsembleTri<E>
 		/*
 		 * TODO Remplacer par l'implémentation ...
 		 */
-		return null;
+		return ensemble.complement(autre);
 	}
 
 	/**
@@ -163,6 +188,6 @@ extends EnsembleGenerique<E> implements EnsembleTri<E>
 		/*
 		 * TODO Remplacer par l'implémentation ...
 		 */
-		return null;
+		return ensemble.iterator();
 	}
 }
