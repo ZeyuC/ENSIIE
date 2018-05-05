@@ -1,0 +1,55 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+\documentclass{article} % For LaTeX2e
+\usepackage{config}
+\usepackage[cyr]{aeguill}
+%\usepackage[francais]{babel}
+\title{TP4 - MST}
+\author{Nicolas Brunel, Anastase Charantonis, Julien Floquet}
+\date{27/04/2018}
+\begin{document} 
+\maketitle
+%Le TP est une ?tude des tests statistiques.
+\textbf{1) Test de Student}\\
+Simuler un ?chantillon i.i.d $\mathcal{S}_n=(x_1,\dots,x_n)$ de taille $n=20$, et dont la loi commune est une loi normale $\mathcal{N}(\mu,\sigma^2)$  avec $\mu = 1$ et $\sigma^2 = 2$ (on rappelle que la fonction R pour simuler \emph{rnorm}). 
+\\
+
+\begin{enumerate}
+
+\item Nous voulons tester si la moyenne de l'?chantillon $\mu$ est ?gale ? $\mu_0=1$, ou plut?t ?gale ? $\mu_1 = 1.5$. On suppose que la variance  $\sigma^2$ est inconnue. Pour r?pondre ? cette question, on va faire un test statistique avec un niveau de significativit? $\alpha = 5 \%$ (appel? encore risque de 1?re esp?ce).
+\begin{enumerate}
+\item Les hypoth?ses du test sont  $H_0 : \mu = \mu_0 $ et $H_1 : \mu = \mu_1$. Rappeler la d?finition de $\alpha$ et ? quoi il correspond. 
+\item Donner la forme de la zone de rejet $W$, pour $\alpha=5\%$ (on pourra utiliser le lemme de Neyman-Pearson, vu en cours). 
+\item Programmer la r?gle de d?cision associ?e $\delta(\mathcal{S}_n,\alpha,\mu_0,\mu_1)$ (?crire une fonction R param?tr?e par les moyennes, $\alpha$, et $\mathcal{S}_n$).  
+\end{enumerate}
+
+\item Simuler $N=100$ ?chantillons $\mathcal{S}^1_n, \dots, \mathcal{S}^N_n$ (toujours tel que $\mathcal{N}(\mu,\sigma^2)$, avec $\mu = 1$ et $\sigma^2 = 2$). 
+\begin{enumerate}
+\item On rappellera la loi de la variable al?atoire $\delta(\mathcal{S}_n,\alpha,\mu_0,\mu_1)$.  Appliquer la r?gle de d?cision du test de Student sur $S_n^i, i=1,\dots,100$. Qu'observez vous? .
+\item Faire varier $\alpha=0.2, 0.1, 0.05, 0.01$ : comment la zone de rejet est-elle modifi?e ?
+\item Pour $\alpha=0.2, 0.1, 0.05, 0.01$, appliquer la r?gle de d?cision $\delta(\mathcal{S}^i_n,\alpha,\mu_0,\mu_1)$, $i=1,\dots,N$.
+\end{enumerate}
+
+\item On va simuler $N=100$ ?chantillons $\mathcal{S}^{'1}_n, \dots, \mathcal{S}^{'N}_n$, mais qui suivent maintenant une loi  $\mathcal{N}(\mu,\sigma^2)$, avec $\mu = 1.5$ et $\sigma^2 = 2$. 
+\begin{enumerate}
+\item On rappellera la loi de la variable al?atoire $\delta(\mathcal{S}^{'i}_n,\alpha,\mu_0,\mu_1)$. Appliquer la r?gle de d?cision du test de Student sur $\mathcal{S}_n^{'i}, i=1,\dots,100$. Qu'observez vous?
+\item Rappeler la d?finition et calculer th?oriquement la puissance du test $\beta$, en fonction de $\alpha,\mu_0,\mu_1$. 
+\item On fixe $\alpha= 0.05$, et on fait varier l'hypoth?se alternative $H_1 : \mu = \mu_1$.  Simuler $N=100$ ?chantillons $\mathcal{S}^{'1}_n, \dots, \mathcal{S}^{'N}_n$ en faisant varier la moyenne $\mu = \mu_1 \in \{1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0\}$ et  appliquer la r?gle de d?cision $\delta(\mathcal{S}^{'i}_n,\alpha,\mu_0,\mu_1)$, $i=1,\dots,N$. Tracer en fonction de $\mu_1$ le pourcentage de bonne d?cision et comparer avec les r?sultats de la question pr?c?dente. 
+\end{enumerate}
+
+\item On va utiliser la fonction R \emph{t.test} qui permet de faire le test d'une hypoth?se simple $H_0 : \mu = \mu_0$, contre une hypoth?se multiple (ou composite) $H_1 : \mu > \mu_0$ (ou $\mu \neq \mu_0$). 
+
+\begin{enumerate}
+\item Pour un ?chantillon $\mathcal{S}_n=(x_1,\dots,x_n)$ de la question 2, utiliser la fonction \emph{t.test} pour faire le test vu ci-dessus. On lira attentivement l'aide de la fonction pour comprendre les inputs et outputs : ? quoi correspond la valeur "$t$". A quoi correspond \emph{df} ? 
+\item  Si on note $x \mapsto F_{n-1}^T(x)$, la fonction de r?partition d'une loi de Student ? $n-1$ degr?s de libert?s, alors la p-value donn?e par la fonction \emph{t.test} est ?gale ? $p-value=1-F_{n-1}^T(t)$, o? $t$ est la valeur donn?e pr?c?demment. En se rappelant la forme de la zone de rejet $W$, et le caract?re monotone d'une fonction de r?partition, expliquer comment la p-value permet de prendre une d?cision au niveau $\alpha=0.05$. 
+\item Reprendre les $N$ ?chantillons de la question 2, et utiliser la p-value pour ?tudier l'impact de $\alpha$ variant dans $\alpha=0.2, 0.1, 0.05, 0.01$.  
+
+\item La fonction \emph{t.test} permet de calculer l'intervalle de confiance au niveau $1-\alpha$. Rappeler comment l'intervalle de confiance. Sur les $N$ ?chantillons de la question 2, dans combien de cas $1$ est dans l'intervalle de confiance. Est ce normal ?
+\end{enumerate}
+
+\end{enumerate}
+
+\end{document} 
