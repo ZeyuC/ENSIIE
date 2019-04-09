@@ -1,0 +1,303 @@
+---
+title: "Analysis and Description of data"
+author: "Zeyu CHEN and Clément VEYSSIERE"
+date: "2018/11/11"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# 1 The general nature of the problem
+
+### Title of Database : Ailerons
+
+### Sources: Experiments of Rui Camacho (rcamacho@garfield.fe.up.pt)
+	
+### Description :This data set addresses a control problem, namely flying a F16 aircraft. The attributes describe the status of the aeroplane, while the goal is to predict the control action on the ailerons of the aircraft
+
+#2 The explanatory variables available
+```{r , include=TRUE}
+tab <- read.table("Ailerons/ailerons.data.txt",sep = ",")
+tab <- data.frame(1:nrow(tab),tab,row.names = 1)
+
+dim(tab)
+head(tab)
+```
+###So we have 7154 instances and 41 variables,and each variable is a continuous number.
+
+###here we will show you the fisrt ten rows of our data.
+```{r , include=TRUE}
+names(tab) = c("climbRate","Sgz", "p", "q", "curPitch", "curRoll", "absRoll", "diffClb", "diffRollRate", "diffDiffClb", "SeTime1", "SeTime2", "SeTime3", "SeTime4", "SeTime5", "SeTime6", "SeTime7", "SeTime8", "SeTime9", "SeTime10" , "SeTime11", "SeTime12", "SeTime13", "SeTime14", "diffSeTime1", "diffSeTime2", "diffSeTime3", "diffSeTime4", "diffSeTime5", "diffSeTime6", "diffSeTime7", "diffSeTime8", "diffSeTime9", "diffSeTime10", "diffSeTime11", "diffSeTime12", "diffSeTime13", "diffSeTime14", "alpha", "Se", "goal")
+tab[1:5,]
+
+tab$SeTime2 <- as.double(tab$SeTime2)
+tab
+summary(tab)
+
+```
+```{r, include = FALSE}
+library(Amelia)
+
+tab$SeTime2 = as.double(tab$SeTime2)
+
+tab$diffSeTime2 = NULL
+
+
+```
+
+```{r, include = TRUE}
+library(corrplot)
+goal = tab$goal
+tab$goal = NULL
+tab = as.data.frame(scale(tab,center = FALSE))
+tab$goal = goal
+
+sub <- sample(nrow(tab), 0.5 * nrow(tab))
+tabTrain <- tab[sub,]
+tabTest <- tab[-sub,]
+
+res <- lm(goal ~ . , data = tabTrain)
+summary(res)
+
+cor(tab)
+par(cex=0.5)
+corrplot(cor(tabTrain),type="lower")
+```
+
+```{r, include = FALSE}
+library("lars")
+library("glmnet")
+resboth <- step(res,direction='both')
+reslasso<-  cv.glmnet(data.matrix(tabTrain[-40]) ,as.vector(tabTrain$goal),type.measure="deviance",family="gaussian")
+summary(resboth)
+```
+
+```{r, include = TRUE}
+#reslasso$lambda.min
+reslasso<-  cv.glmnet(data.matrix(tabTrain[,-40]) ,as.vector(tabTrain$goal),type.measure="deviance",family="gaussian",alpha=1)
+
+
+resrigde<-  cv.glmnet(data.matrix(tabTrain[,-40]) ,as.vector(tabTrain$goal),type.measure="deviance",family="gaussian",alpha=0)
+
+resNet<-  cv.glmnet(data.matrix(tabTrain[,-40]) ,as.vector(tabTrain$goal),type.measure="deviance",family="gaussian",alpha=0.2)
+
+#coef(reslasso$glmnet.fit, s = reslasso$lambda.min)
+#coef(resrigde$glmnet.fit, s = resrigde$lambda.min)
+
+coefficients(reslasso,lamda=reslasso$lambda.min)
+
+pre <- predict(reslasso, newx = data.matrix(tabTest[,-40]), type="response" ,s=reslasso$lambda.min)  
+
+preR <- predict(resrigde, newx = data.matrix(tabTest[,-40]), type="response" ,s=resrigde$lambda.min)  
+
+preN <- predict(resNet, newx = data.matrix(tabTest[,-40]), type="response" ,s=resNet$lambda.min) 
+
+Prelm <- predict(res,newdata = tabTest)
+
+Preboth <- predict(resboth,newdata = tabTest)
+
+plot(Prelm,Prelm-tabTest$goal)
+
+plot(tabTest$goal,pre-tabTest$goal)
+sigma = sqrt(var(tabTest$goal-pre))
+plot(tabTest$goal,tabTest$goal-pre)
+par(new = TRUE)
+abline(h = 3 * sigma)
+par(new=TRUE)
+abline(h = -3 * sigma)
+
+plot(preR,preR-tabTest$goal)
+
+plot(preN,preN-tabTest$goal)
+#sum squared residual
+SSRlasso <- sum((pre-tabTest$goal)^2)
+SSRrigde <- sum((preR-tabTest$goal)^2)
+SSNet <- sum((preN-tabTest$goal)^2)
+SSRlm <- sum((Prelm-tabTest$goal)^2)
+SSRboth<- sum((Preboth-tabTest$goal)^2)
+
+data.frame(SSRlm,SSRboth,SSRlasso,SSRrigde,SSNet)
+sum = 0;
+for (i in 1:length(pre)){
+  if (pre[i] - tabTest$goal[i] >= - sigma && pre[i] - tabTest$goal[i] <=  sigma){
+    sum = sum + 1
+  }
+}
+sum/length(pre)
+mean(tabTest$goal - pre)
+```
+```{r , include=TRUE}
+set.seed(3)
+plot.pred.sigma <- function(actual, predi, graphname){
+  plot(actual,actual-predi, ylab = "Y-pred", xlab = "Y", main = graphname,ylim = c(-0.002,0.002),xlim=c(-0.004,0) )
+  par(new = TRUE)
+  abline(h = 3 * sigma)
+  par(new=TRUE)
+  abline(h = -3 * sigma)
+  #SSR = sum((predi-actual)^2)
+  #cat("SSR pour", graphname, ":", SSR)
+}
+library(class)
+kemans_ElasticNet <- function(k)
+{
+  i<-0
+  kmTrain <- kmeans(tabTrain[,-40], k)
+  tabls <-list()
+  tabT <- data.frame()
+  cl <- rep()
+  for(i in 1:k)
+  {
+     tabls[[i]] <- tabTrain[kmTrain$cluster==i,]
+     tabT <- rbind(tabT,tabls[[i]])
+     cl <- factor(c(cl,rep(i,dim(tabls[[i]])[1])))
+  }
+  class <- knn(tabT, tabTest, cl, k = k)
+  RSS<-0
+  i<-0
+  for(i in 1:k)
+  {
+    Test <- tabTest[class==i,]
+    resNet<-  cv.glmnet(data.matrix( tabls[[i]][,-40]) ,y = as.vector(tabls[[i]]$goal),type.measure="deviance",family="gaussian",alpha=0.2)
+    preN <- predict(resNet, newx = data.matrix(Test[,-40]), type="response" ,s=resNet$lambda.min) 
+    RSS <- RSS+ sum((Test$goal-preN)^2)
+  
+    plot.pred.sigma(Test$goal,preN,"Kmeans_elastic_net")
+    
+  }
+  return(RSS)
+}
+resls <-1
+i <- 0
+for(i in 4:4)
+{
+  rss <- kemans_ElasticNet(i)
+  if(rss < resls)
+  {
+    index <- i 
+    resls <- rss
+  }
+}
+SSRKmeans_net <- resls 
+
+```
+
+
+
+```{r , include=TRUE}
+library(class)
+kemans_stepwise <- function(k)
+{
+  i<-0
+  kmTrain <- kmeans(tabTrain[,-40], k)
+  tabls <-list()
+  tabT <- data.frame()
+  cl <- rep()
+  for(i in 1:k)
+  {
+     tabls[[i]] <- tabTrain[kmTrain$cluster==i,]
+     tabT <- rbind(tabT,tabls[[i]])
+     cl <- factor(c(cl,rep(as.character(i),dim(tabls[[i]])[1])))
+  }
+  
+  class <- knn(tabT, tabTest, cl, k = k)
+  RSS<-0
+  i<-0
+  for(i in 1:k)
+  {
+    Test <- tabTest[class==i,]
+    resls <- lm(goal~.,data = tabls[[i]])
+    resboth <- step(resls,direction='both',trace = 0)
+    Preboth <- predict(resboth ,newdata = Test)
+    RSS <- RSS+ sum((Test$goal-Preboth)^2)
+    plot.pred.sigma(Test$goal,Preboth,"Kmeans_stepwise")
+  }
+  return(RSS)
+}
+
+resls <-1
+i <- 0
+kemans_stepwise(4)
+#for(i in 2:4)
+#
+data.frame(SSRlm,SSRboth,SSRlasso,SSRrigde,SSNet,SSRKmeans_net,SSRKmeans_both)
+```
+
+
+
+```{r , include=TRUE}
+#k-Nearest Neighbour Regressio
+#il faut faire plsrs tests avec le meme k car knn dépend de l'initialisation
+#il faut faire plsrs tests avec plsrs k
+library(caret)
+voi = length(tabTrain$goal)/30
+fit <- knnreg(x = tabTrain[,-40], y = tabTrain$goal, k = voi) 
+
+pred <- predict(fit, tabTest[,-40])
+plot(tabTest$goal,pred-tabTest$goal)
+
+sum((pred-tabTest$goal)^2)
+```
+
+
+```{r , include=TRUE}
+library(rpart)
+cart.res = rpart(goal ~ Sgz + p + curRoll + absRoll + diffClb + diffRollRate + SeTime1 + SeTime2 + SeTime4 + SeTime5 + alpha, data = tabTrain, method = "anova", control = rpart.control(minsplit = 100, cp = 0))
+printcp(cart.res)
+plotcp(cart.res)
+cart.pred = predict(cart.res, newdata = tabTest[-40])
+sigma = sd(tabTest$goal - cart.pred)
+plot(tabTest$goal,tabTest$goal-cart.pred)
+par(new = TRUE)
+abline(h = 3 * sigma)
+par(new=TRUE)
+abline(h = -3 * sigma)
+SSRcart <- sum((tabTest$goal-cart.pred)^2)
+SSRcart
+sum = 0;
+for (i in 1:length(cart.pred)){
+  if (cart.pred[i] - tabTest$goal[i] >= -sigma && cart.pred[i] - tabTest$goal[i] <= sigma){
+    sum = sum + 1
+  }
+}
+sum/length(cart.pred)
+mean(tabTest$goal - cart.pred)
+```
+
+
+
+
+```{r, include = TRUE}
+
+library(earth)
+earth.mod = earth(goal ~ Sgz + p + curRoll + absRoll + diffClb + diffRollRate + SeTime1 + SeTime2 + SeTime4 + SeTime5 + alpha, data = tabTrain, degree = 2)
+pre.spines = predict(earth.mod, newdata = data.matrix(tabTest[-40]))
+sigma = sd(tabTest$goal - pre.spines)
+plot.pred.sigma(tabTest$goal,pre.spines, "Splines")
+par(new = TRUE)
+abline(h = 3 * sigma)
+par(new=TRUE)
+abline(h = -3 * sigma)
+SSRsplines <- sum((tabTest$goal-pre.spines)^2)
+plotmo(earth.mod)
+summary(earth.mod, digits = 2, style = "pmax")
+SSRsplines
+
+sum = 0;
+for (i in 1:length(pre.spines)){
+  if (pre.spines[i] - tabTest$goal[i] >= -sigma && pre.spines[i] - tabTest$goal[i] <= sigma){
+    sum = sum + 1
+  }
+}
+sum/length(pre.spines)
+mean(tabTest$goal - pre.spines)
+```
+```{r, include = TRUE}
+1/3
+```
+
+
+
+
+

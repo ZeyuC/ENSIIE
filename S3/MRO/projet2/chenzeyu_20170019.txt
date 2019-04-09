@@ -1,0 +1,69 @@
+# 1-7-13.68E-1
+
+# 2-5-22 2
+
+# 3-6-2
+int Connected(int n,int i,int j,float** transitions)
+{
+    int l;
+    int c;
+    int num=0;
+    int succeed[n];
+    int visted[n];
+    for(l=0;l<n;l++)
+	{
+	succeed[l]=0;
+	visted[l]=0;
+	}
+    succeed[i]=1;
+    while (num <n)
+    {
+	for(l=0;l<n;l++)
+	{
+		if(succeed[l]==1&&visted[l]==0)
+		{
+			visted[l]=1;
+			for(c = 0;c< n;c++)
+			{
+			   if(transitions[l][c]>0)
+			   {
+			   	 succeed[c]=1;
+			   }
+		    }
+	    }
+	}
+	num++;
+ 	}
+ 	int flag=0;
+ 	for(l=0;l<n;l++)
+ 	{
+ 		if(succeed[l]==1 && l ==j)
+ 			flag=1;
+ 	}
+ 	return flag;
+}
+
+void communicating_classes_algorithm(int n, float** transitions, int* comclasses){
+	
+	int i;
+	int j;
+
+	for(i=0;i<n;i++)
+	{
+		comclasses[i]=-1;
+	}
+	int num=1;
+	for(i=0;i<n;i++)
+	{
+		if(comclasses[i]==-1)
+		{
+			comclasses[i]=num;
+			num++;
+			for(j=0;j<n;j++)
+			{
+				if(Connected(n,i,j,transitions)>0 && Connected(n,j,i,transitions)>0)
+					comclasses[j]=comclasses[i];
+			}
+		}
+	}
+}

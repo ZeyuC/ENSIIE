@@ -1,0 +1,102 @@
+---
+title: "PCA_decathlon2"
+author: "Zeyu CHEN"
+date: "2018/11/19"
+output: pdf_document
+---
+
+```{r , include}
+library("FactoMineR")
+library("factoextra")
+
+data(decathlon2)
+dim(decathlon2)
+
+decathlon2.active <- decathlon2[1:23, 1:10]
+
+#returns the first 4 lines
+head(decathlon2.active[,1:6],4)
+
+#In principal component analysis, variables are often scaled (i.e. standardized).
+
+res.pca <- PCA(decathlon2.active, graph = FALSE)
+
+print(res.pca)
+
+
+```
+
+
+# Eigenvalues / Variances
+```{r , include}
+#Extract the eigenvalues/variances of principal components
+eig.val <- get_eigenvalue(res.pca)
+eig.val
+
+#Visualize the eigenvalues
+fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 50))
+```
+# Graph of variables
+```{r , include}
+#Extract the results for variables
+var <- get_pca_var(res.pca)
+
+# Coordinates
+var$coord
+
+# Cos2: quality on the factore map
+var$cos2
+
+# Contributions to the principal components
+head(var$contrib)
+```
+
+# Correlation circle
+The correlation between a variable and a principal component (PC) is used as the coordinates of the variable on the PC. The representation of variables differs from the plot of the observations: The observations are represented by their projections, but the variables are represented by their correlations (Abdi and Williams 2010).
+```{r , include}
+head(var$coord, 4)
+fviz_pca_var(res.pca, col.var = "black")
+```
+
+#Quality of representation
+```{r , include}
+head(var$cos2, 4)
+library("corrplot")
+corrplot(var$cos2, is.corr=FALSE)
+
+# Total cos2 of variables on Dim.1 and Dim.2
+fviz_cos2(res.pca, choice = "var", axes = 1:2)
+```
+
+It’s possible to color variables by their cos2 values using the argument col.var = "cos2". This produces a gradient colors. In this case, the argument gradient.cols can be used to provide a custom color. For instance, gradient.cols = c("white", "blue", "red") means that:
+
+variables with low cos2 values will be colored in “white”
+variables with mid cos2 values will be colored in “blue”
+variables with high cos2 values will be colored in red
+```{r , include}
+# Color by cos2 values: quality on the factor map
+fviz_pca_var(res.pca, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE # Avoid text overlapping
+             )
+
+# Change the transparency by cos2 values
+fviz_pca_var(res.pca, alpha.var = "cos2")
+```
+
+#Contributions of variables to PCs
+
+```{r , include}
+var$contrib
+corrplot(var$contrib, is.corr=FALSE) 
+
+# Contributions of variables to PC1
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 10)
+
+# Contributions of variables to PC2
+fviz_contrib(res.pca, choice = "var",axes= 2,top=10 )
+
+# The total contribution to PC1 and PC2 is obtained with the following R code:
+fviz_contrib(res.pca, choice = "var", axes = 1:2, top = 10)
+```
+

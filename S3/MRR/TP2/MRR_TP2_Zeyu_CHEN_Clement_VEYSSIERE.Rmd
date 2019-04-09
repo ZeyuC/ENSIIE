@@ -1,0 +1,125 @@
+---
+title: "MRR_TP1_Zeyu_CHEN_Clement_VEYSSIERE"
+author: "Zeyu CHEN et Clement_VEYSSIERE"
+date: "2018/10/22"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#IV. The Boston Housing data set
+
+## Linear models
+```{r , include=TRUE}
+rm(list = ls())
+library(mlbench)
+data(BostonHousing)
+
+sub <- sample(nrow(BostonHousing), 0.6 * nrow(BostonHousing))
+TabTrain <- BostonHousing[sub,]
+TabTest <- BostonHousing[-sub,]
+# model with TabTrain
+modBH <- lm(medv~.,data=TabTrain)
+summary(modBH)
+RSSlm <- sum((TabTest$medv - predict(modBH,newdata = TabTest))^2)/length(TabTest$medv)
+
+#As we can see in the print ,there are some coefs whose p-value is larger than 0.1 #which means it is nonsignificant.So we use stepwise regression to find a sparse 
+#model based on a small subset of vars 
+
+modBHboth <- step(modBH,direction = 'both')
+summary(modBHboth)
+RSSstep <- sum((TabTest$medv - predict(modBHboth,newdata = TabTest))^2)/length(TabTest$medv)
+data.frame(RSSlm,RSSstep)
+#We can find that the model which produced by stepwise regression has a smaller RSE
+```
+
+## Ridge models
+```{r, include = TRUE}
+library(mlbench)
+library(MASS)
+data(BostonHousing)
+BostonHousing$chas = as.numeric(BostonHousing$chas)
+sub <- sample(nrow(BostonHousing), 0.6 * nrow(BostonHousing))
+TabTrain <- BostonHousing[sub,]
+TabTest <- BostonHousing[-sub,]
+```
+
+```{r, include = FALSE}
+scale(as.matrix(TabTrain))
+```
+
+```{r, include = TRUE}
+#Compute ridge regression model for different values of lambda starting from 0
+#to 10 with an increment of 0.01 which is for finding the best lambda 
+modRigeBH <- lm.ridge(medv~.,TabTrain,lambda = seq(0,10,0.01))
+
+plot(modRigeBH$GCV)
+
+plot(modRigeBH)
+
+
+#The index which correspond the smallest GCV is the best index of lambda
+indexlambda <- which.min(modRigeBH$GCV)
+
+coefridge <- coef(lm.ridge(medv~.,TabTrain,lambda = modRigeBH$GCV[indexlambda]))
+
+#finnally , the coefs that we found by using Ridge is here
+data.frame(coefridge)
+```
+## Lasso models
+```{r, include = TRUE}
+library(mlbench)
+library(lars)
+library(dplyr)
+data(BostonHousing)
+BostonHousing$chas = as.numeric(BostonHousing$chas)
+
+#split data
+sub <- sample(nrow(BostonHousing), 0.75 * nrow(BostonHousing))
+
+TabTrain <- BostonHousing[sub,]
+TabTest <- BostonHousing[-sub,]
+Ytrain = TabTrain$medv
+Ytest = TabTest$medv
+
+Xtrain = as.matrix(scale(select(TabTrain,-medv)))
+Xtest = as.matrix(scale(select(TabTest,-medv)))
+
+#Xtrain = as.matrix(select(TabTrain,-medv))
+#Xtest =as.matrix(select(TabTest,-medv))
+
+#Lasso regression
+modlasso = lars(Xtrain, Ytrain, type = "lasso")
+plot(modlasso)
+plot(modlasso$lambda)
+
+
+  
+pY = predict.lars(modlasso, Xtest, type = "fit", mode = "lambda", s=modlasso$lambda[1])
+MSElasso = mean((Ytest - pY$fit)^2)
+lambda = 1
+for (i in 2:length(modlasso$lambda)){
+  pY = predict.lars(modlasso, Xtest, type = "fit", mode = "lambda", s=modlasso$lambda[i])
+  newMSElasso = mean((Ytest - pY$fit)^2)
+  if (MSElasso > newMSElasso){
+    MSElasso = newMSElasso
+    lambda = i
+  }
+}
+
+lambda #index of lambda which gives the smallest mean square error
+MSElasso
+modlasso$lambda[lambda]
+coef = predict.lars(modlasso, Xtest, type = "coefficients", mode = "lambda", s = modlasso$lambda[lambda])
+coef$coefficients #coefficients obtained for this lambda
+
+pY = predict.lars(modlasso, Xtest, type = "fit", mode = "lambda", s=modlasso$lambda[lambda])
+
+RSS <- data.frame(sum((Ytest = TabTest$medv - pY$fit)^2)/14) 
+names(RSS) <- "RSS by Lasso"
+row.names(RSS) <- "RSS"
+RSS
+```
+

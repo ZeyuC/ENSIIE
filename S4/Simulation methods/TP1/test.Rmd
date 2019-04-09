@@ -1,0 +1,64 @@
+---
+title: "Test"
+author: "Zeyu CHEN"
+date: "2019/3/20"
+output: pdf_document
+---
+
+```{r, include = TRUE}
+Q <- t(matrix(data =c(0.2,0.1,0.5,0.2,0.1,0.6,0.1,0.2,0.3,0.1,0.2,0.4,0.1,0.1,0.1,0.7),nrow = 4,ncol= 4))
+
+pi = Q
+for(i in 1:500)
+{
+  pi <- pi%*%Q
+}
+pi <- pi[1,]
+
+
+#Step 2 , set X0
+X0 <-1
+
+#Step 3 , built Xn
+n = 100000
+Xn <- rep(1,n)
+
+Xn[1]<-X0
+#la fonction pour generer Yn
+rYn <- function(X)
+{
+  Yn <- 1
+  u <- runif(1)
+  c <- Q[X,]
+  
+  if(u <= c[1])
+    Yn=1
+  else if(u<=c[2]+c[1])
+    Yn=2
+  else if(u<=c[2]+c[1]+c[3])
+    Yn=3
+  else 
+    Yn=4
+  
+  return(Yn)
+}
+
+for(i in 2:n)
+{
+  u <- runif(1)
+  x <- Xn[i-1]
+  Yn <- rYn(x)
+  h = min(1,(pi[Yn]*Q[Yn,Xn[i-1]])/(pi[Xn[i-1]]*Q[Xn[i-1],Yn]))
+  if(u < h)
+    Xn[i]=Yn
+  else
+    Xn[i]=Xn[i-1]
+}
+
+#step 4, we have now Markov chain Xn ,using the ergodic theorem now
+
+Approx <- mean(Xn^2)
+
+#Donc , notre estimation est : 
+Approx 
+```

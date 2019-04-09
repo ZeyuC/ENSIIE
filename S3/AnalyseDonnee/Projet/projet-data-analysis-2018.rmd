@@ -1,0 +1,347 @@
+---
+title: "Mixture of balls with different volumes"
+author: "Clément Veyssière & Zeyu Chen"
+date: "18 novembre 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Exercise 1   Simulation
+##1.
+```{r, include = TRUE}
+set.seed(123)
+library(MASS)
+v1 <- mvrnorm(500, mu = c(1,2), Sigma = diag(2))
+v2 <- mvrnorm(500, mu = c(1,2), Sigma = 4 * diag(2))
+v <- rbind(v1,v2)
+dim(v)
+
+```
+
+##2.
+```{r, include = TRUE}
+plot(v[,1])
+plot(v[,2])
+plot(v)
+```
+
+##3.
+```{r, include = TRUE}
+library(ggplot2)
+sep = matrix(0,1000,1)
+sep[1:500] = 1
+
+v.data = as.data.frame(v)
+
+ggplot(v.data, aes(x = V1, y=V2, colour = sep)) + geom_point() + ggtitle("contour plot") + labs(colour = "genere pas la 1ere gaussienne") + geom_density2d(col = "black")
+```
+
+#Exercise 2   Mclust versus kmeans
+##1.
+```{r, include = TRUE}
+library(mclust)
+BIC <- mclustBIC(v)
+plot(BIC)
+clust <- Mclust(v, modelNames = "VII")
+```
+
+
+##2.
+```{r, include = TRUE}
+clust$parameters
+```
+Results are close to the real parameters but there is still room for improvement.
+
+##3.
+```{r, include = TRUE}
+clust$classification
+```
+
+##4.
+```{r, include = TRUE}
+km <- kmeans(v, centers = 2)
+Mean <- km$centers
+
+Std <- sqrt(km$withinss/km$size)
+
+data.frame(Mean,Std)
+km$withinss
+km$cluster
+km$centers
+```
+
+##5.
+```{r, include = TRUE}
+compare = ifelse(clust$classification == km$cluster, 1, 0)
+sum(compare)
+s = 0
+for (i in 1:500){
+  s = s + ifelse(clust$classification[i] == 1, 1, 0)
+}
+for (i in 501:1000){
+  s = s + ifelse(clust$classification[i] != 1, 1, 0)
+}
+s
+s = 0
+for (i in 1:500){
+  s = s + ifelse(km$cluster[i] == 1, 1, 0)
+}
+for (i in 501:1000){
+  s = s + ifelse(km$cluster[i] != 1, 1, 0)
+}
+s
+ggplot(v.data, aes(x = V1, y=V2, colour = clust$classification)) + geom_point() + ggtitle("contour plot Mclust") + labs(colour = "genere pas la 1ere gaussienne")
+ggplot(v.data, aes(x = V1, y=V2, colour = km$cluster)) + geom_point() + ggtitle("contour plot Kmean") + labs(colour = "genere pas la 1ere gaussienne")
+```
+Among the 1000 instanciations, only 478 belong to the same clusters with both methods.
+Mclust gave a 68,5% accuracy while kmeans gave a 49% accuracy.
+Both methods seem to struggle in giving a correct repartition of the points between the two clusters.
+Kmeans separate the points with a line.
+
+###Exercise 3   EM algorithm for a Mixture of balls
+
+##1.
+$$
+\begin{aligned}
+t^{q}_{ik} &= E_{\theta^{q}}[Z_{ik}|X_{i}] \\
+&= P_{\theta^{q}}(Z_{i} = k|X_{i}) \\
+&= \frac{P_{\theta^{q}}(Z_{i} = k) P_{\theta^{q}}(X_{i}|Z_{i} = k)}{P_{\theta^{q}}(X_{i})} \\
+&= \frac{P_{\theta^{q}}(Z_{i} = k) P_{\theta^{q}}(X_{i}|Z_{i} = k)}{\sum_{l} P_{\theta^{q}}(Z_{i} = l) P_{\theta^{q}}(X_{i}|Z_{i} = l)}
+\end{aligned}
+$$
+
+##2.
+$$
+\begin{aligned}
+Q(\theta|\theta^{q}) &= E_{Z|X,\theta^{q}}[ln(P(Z|X,\theta^{q}))] \\
+&= E_{Z|X,\theta^{q}}[ln (\prod_{i=1}^{n}{P(X_{i},Z_{i}|\theta)})] \\
+&= \sum_{i=1}^{n}{E_{Z|X,\theta^{q}}[ln (P(Z_{i}|\theta)P(X_{i}|Z_{i},\theta))]} \\
+&= \sum_{i=1}^{n}{\sum_{k=1}^{K}{P(Z_{i}=k|X_{i},\theta^{q})(ln (P(Z_{i}|\theta)P(X_{i}|Z_{i},\theta)))}} \\
+&= \sum_{i=1}^{n}{\sum_{k=1}^{K}{t^{q}_{ik} (ln(P(Z_{i}|\theta))+ln(P(X_{i}|Z_{i},\theta)))}} \\
+\end{aligned}
+$$
+
+##3.
+$$
+\begin{aligned}
+\theta^{q+1} &= \underset{\theta}{\mathrm{argmax}}( Q(\theta|\theta^{q})) \\
+&= \underset{\theta}{\mathrm{argmax}}(\sum_{i=1}^{n}{\sum_{k=1}^{K}{t^{q}_{ik} (ln(P(Z_{i}|\theta))+ln(P(X_{i}|Z_{i},\theta)))}}) \\
+\end{aligned}
+$$
+a) find $\mu_{k}$
+$$
+\begin{aligned}
+\frac{\partial Q(\theta|\theta^{q})}{\partial \mu_{k}} = 0 & \iff \frac{\partial}{\partial \mu_{k}}(\sum_{i=1}^{n}\sum_{k=1}^{K}{{t^{q}_{ik} (ln(P(Z_{i}|\theta))+ln(P(X_{i}|Z_{i},\theta)))}}) = 0 \\
+& \iff \sum_{i=1}^{n}t^{q}_{ik}\frac{\partial}{\partial \mu_{k}}(ln(P(X_{i}|Z_{i},\theta))) = 0 \\
+& \iff \sum_{i=1}^{n}t^{q}_{ik}\frac{\partial}{\partial \mu_{k}}
+(-\frac{1}{2}(x_{i}-\mu_{k})^{T}\sigma_{k}^{-1}(x_{i}-\mu_{k})) = 0 \\
+& \iff \sum_{i=1}^{n}t^{q}_{ik}\sigma_{k}^{-1}(x_{i}-\mu_{k}) = 0 \\
+& \iff \sum_{i=1}^{n}t^{q}_{ik}\sigma_{k}^{-1}\mu_{k} = \sum_{i=1}^{n}t^{q}_{ik}\sigma_{k}^{-1}x_{i} \\
+& \iff \mu_{k} = \frac{\sum_{i=1}^{n}t^{q}_{ik}x_{i}}{\sum_{i=1}^{n}t^{q}_{ik}} \\
+\end{aligned}
+$$
+b) find $\sigma_{k}$
+$$
+\begin{aligned}
+\frac{\partial Q(\theta|\theta^{q})}{\partial \sigma_{k}^{-1}} = 0 & \iff \frac{\partial}{\partial \sigma_{k}^{-1}}(\sum_{i=1}^{n}\sum_{k=1}^{K}{{t^{q}_{ik} (ln(P(Z_{i}|\theta))+ln(P(X_{i}|Z_{i},\theta)))}}) = 0 \\
+& \iff \sum_{i=1}^{n}t^{q}_{ik}\frac{\partial}{\partial \sigma_{k}^{-1}}(ln(P(X_{i}|Z_{i},\theta))) = 0 \\
+& \iff \sum_{i=1}^{n}t^{q}_{ik}\frac{\partial}{\partial \sigma_{k}^{-1}}(\frac{1}{2}ln(|\sigma_{k}^{-1}|) -
+\frac{1}{2} (x_{i}-\sigma_{k})^{T}\sigma_{k}^{-1}(x_{i}-\sigma_{k})) = 0 \\
+& \iff \frac{1}{2}\sum_{i=1}^{n}t^{q}_{ik}(2 \sigma_{k} - diag(\sigma_{k}) -2(x_{i} - \mu_{k})^{T}(x_{i} - \mu_{k})+ diag((x_{i} - \mu_{k})^{T}(x_{i} - \mu_{k}))) = 0 \\
+& \iff \frac{1}{2}\sum_{i=1}^{n}t^{q}_{ik}(2 (\sigma_{k}-(x_{i} - \mu_{k})^{T}(x_{i} - \mu_{k})) - diag(\sigma_{k}-(x_{i} - \mu_{k})^{T}(x_{i} - \mu_{k}))) = 0 \\
+& \iff 2M - diag(M) = 0 \\
+\end{aligned}
+$$
+where $M = \frac{1}{2}\sum_{i=1}^{n}t^{q}_{ik}(\sigma_{k}-(x_{i} - \mu_{k})^{T}(x_{i} - \mu_{k})) $
+Thus, we have $M = 0$.
+So $\sigma_{k} = \frac{\sum_{i=1}^{n}t^{q}_{ik}(x_{i} - \mu_{k})^{T}(x_{i} - \mu_{k})}{\sum_{i=1}^{n}t^{q}_{ik}}$
+
+c)Find $\pi_{k}$
+We use the Lagrange multiplier $\lambda$ with the constraint $\sum_{k=1}^{K}{\pi_{k}}=1$ and we get
+$$
+\begin{aligned}
+L(\theta|\theta^{q}) = Q(\theta|\theta^{q}) + \lambda(1 + (-\sum_{k=1}^{K}{\pi_{k}})) \\
+\frac{\partial{L(\theta|\theta^{q})}}{\partial{\pi_{k}}} = \frac{\partial{}}{\partial{\pi_{k}}}(Q(\theta|\theta^{q}) + \lambda(1 + (-\sum_{k=1}^{K}{\pi_{k}}))) &= 0 \\
+\sum_{i = 1}^{n}{\frac{t_{ik}^{q}}{\pi_{k}}-\lambda} &=0 \\
+\sum_{i = 1}^{n}{t_{ik}^{q}} &= \pi_{k}\lambda \\
+\sum_{i = 1}^{n}\sum_{k = 1}^{K}{t_{ik}^{q}} &=\sum_{k = 1}^{K} \pi_{k}\lambda \\
+\rightarrow \lambda &= n\\
+\rightarrow \pi_{k} &= \frac{1}{n} \sum_{i=1}^{n}{t_{ik}^{q}}
+\end{aligned}
+$$
+Thus we obtain $\theta^{q+1} = (\mu_{k}^{q+1}, \sigma_{k}^{q+1}, \pi_{k}^{q+1})_{k=1,...,K}$
+
+##4.
+1.randomly choose an initial $\theta_{0} = (\mu_{k}, \sigma_{k}, \pi_{k})_{k=1,...,K}$ where $\sum_{k}^{K}\pi_{k} = 1$.
+2.E step : compute the $(t_{ik}^{q})_{\underset{1 \leqslant k \leqslant K}{1\leqslant i \leqslant n}}$ from $\theta^{q}$ and $X$
+3.M step : find $\theta^{q+1} = \underset{\theta}{argmax}Q(\theta|\theta^{q})$
+4.Repeat until $|\theta^{q} - \theta^{q+1}| \leqslant \epsilon$
+
+
+##5.
+```{r, include = TRUE}
+fk <- function(X,muk,sigmak,i,k){
+  d = ncol(X)
+  #print(sigmak[(1+d*(k-1)):(d*(k)),])
+  res = (1/(((2*pi)^(d/2))*sqrt(abs(det(sigmak[(1+d*(k-1)):(d*(k)),]))))) * exp(-(1/2)*t(X[i,]- muk[k,]) %*% solve(sigmak[(1+d*(k-1)):(d*(k)),]) %*% (X[i,]- muk[k,]) )
+  return(res)
+}
+
+myEstep <- function(X,muk,sigmak,pik){
+    tik = matrix(nrow = nrow(X), ncol = nrow(pik))
+    sum <- 0
+    for (k in 1:nrow(pik)){
+      d<-ncol(X)
+      fk<- mvtnorm::dmvnorm(X,mean = muk[k,],sigma = sigmak[(1+d*(k-1)):(d*(k)),])
+      sum <- sum + pik[k]*fk
+    }
+    for (k in 1:nrow(pik)){
+      fk<- mvtnorm::dmvnorm(X,mean = muk[k,],sigma = sigmak[(1+d*(k-1)):(d*(k)),])
+      tik[,k] = (pik[k]*fk)/sum
+    }
+
+  return(tik)
+}
+
+#test
+pitest = matrix(data = 0.5, nrow = 2, ncol = 1)
+mutest = matrix(nrow = 2, ncol = 2)
+mutest[1,] = c(1,2)
+mutest[2,] = c(1,2)
+sigmatest = diag(2)
+sigmatest = rbind(sigmatest, 4 * diag(2))
+tiktest = myEstep(v,mutest,sigmatest,pitest)
+for(i in 1:1000){
+  if (tiktest[i,1] >= 0.5){
+    tiktest[i,1] = 1
+    tiktest[i,2] = 0
+  }
+  else{
+    tiktest[i,1] = 0
+    tiktest[i,2] = 1
+  }
+}
+s = 0
+for (i in 1:500){
+  s = s + ifelse(tiktest[i,1] == 1, 1, 0)
+}
+for (i in 501:1000){
+  s = s + ifelse(tiktest[i,2] == 1, 1, 0)
+}
+s
+```
+
+##6.
+```{r, include = TRUE}
+myMstep <- function(X,tik){
+  maxk = ncol(tik)
+  maxn = nrow(X)
+  maxd = ncol(X)
+  pik <- matrix(nrow = maxk, ncol = 1)
+  muk <- matrix(nrow = maxk, ncol = maxd)
+  sigmak <- matrix(nrow = maxk*maxd, ncol = maxd)
+  for (k in 1:maxk){
+    pik[k] <- (1/maxn) * sum (tik[,k])
+  }
+  for (k in 1:maxk){
+    num <- matrix(data = 0, nrow = 1, ncol = maxd)
+    for (i in 1:maxn){
+      num <- num + tik[i,k] * X[i,]
+    }
+    muk[k,] <- num / (maxn * pik[k])
+  }
+  for (k in 1:maxk){
+    num <- matrix(data = 0, nrow = maxd, ncol = maxd)
+    for (i in 1:maxn){
+      num <- num + tik[i,k] * ( (X[i,]-muk[k,]) %*% t(X[i,]-muk[k,]) )
+    }
+    sigmak[(1+maxd*(k-1)):(maxd*(k)),] <- num / (maxn * pik[k])
+  }
+  res <- list("pi" = pik, "mu" = muk, "sigma" = sigmak)
+  return(res)
+}
+```
+
+##7.
+```{r, include = TRUE}
+logP <- function(X,pik,muk,sigmak){
+  for (i in 1:nrow(X)){
+    sum = 0
+    for(k in 1:nrow(pik)){
+    fk<- mvtnorm::dmvnorm(X[i,],mean = muk[k,],sigma = sigmak[(1+d*(k-1)):(d*(k)),])
+    sum = sum + pik[k] * fk
+    }
+    res = res + log(sum)
+  }
+  return(res)
+}
+myEMalgo <- function(X,k,epsi){
+  
+  msEst <- mstep(modelName = "EEE", data = data,z=unmap(iris[,5]))
+  
+  pik <- t(msEst$parameters$pro)
+  muk <- t(msEst$parameters$mean)
+  
+  sigmak <- rbind()
+  for(i in 1:k)
+    sigmak <-  rbind(sigmak,msEst$parameters$variance$sigma[,,i])
+  
+
+
+  count = 0
+  repeat{
+    count = count + 1
+    tik <- myEstep(X,muk,sigmak,pik)
+    theta <- myMstep(X,tik)
+    newpi <- theta$pi
+    newmu <- theta$mu
+    newsigma <- theta$sigma
+    print(newmu)
+    if(count>4)
+      break;
+    #if(logP(X,newpi,newmu,newsigma) - logP(X,pik,muk,sigmak)<= epsi){break}
+    
+    muk <- newmu
+    sigmak <- newsigma
+    pik <- newpi
+ 
+  }
+
+  res = list("pi" = newpi, "mu" = newmu, "sigma" = newsigma, "t" = tik)
+  return(res)
+}
+```
+
+
+#Exercise 4 Data iris
+##1.
+```{r, include = TRUE}
+data("iris")
+head(iris)
+data = iris[,1:4]
+data = as.matrix(data)
+theta = myEMalgo(data,3,0.001)
+theta$pi
+
+
+#theta$t
+
+
+
+```
+ sigmak <- diag(ncol(data))
+  for (l in 2:3){
+    sigmak <- rbind(sigmak,l*diag(ncol(data)))
+  }
+ sigmak
+ d<-ncol(data)
+ k<-3
+ sigmak[(1+d*(k-1)):(d*(k)),]
+  pik <- matrix(data = 1/k,nrow = k, ncol = 1)
+ # pik
+ # nrow(pik)
+  muk <- matrix(data = 0, nrow = k, ncol = ncol(data))
+  logP(data,pik,muk,sigmak)

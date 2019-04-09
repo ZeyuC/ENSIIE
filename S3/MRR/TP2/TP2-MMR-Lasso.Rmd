@@ -1,0 +1,49 @@
+---
+title: "TP2 MRR Lasso"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#IV. The Boston Housing data set
+```{r, include = TRUE}
+library(mlbench)
+library(lars)
+library(dplyr)
+data(BostonHousing)
+BostonHousing$chas = as.numeric(BostonHousing$chas)
+
+#split data
+sub <- sample(nrow(BostonHousing), 0.75 * nrow(BostonHousing))
+TabTrain <- BostonHousing[sub,]
+TabTest <- BostonHousing[-sub,]
+Ytrain = TabTrain$medv
+Ytest = TabTest$medv
+Xtrain = as.matrix(scale(select(TabTrain,-medv), center = FALSE))
+Xtest = as.matrix(scale(select(TabTest,-medv), center = FALSE))
+
+#Lasso regression
+modlasso = lars(Xtrain, Ytrain, type = "lasso")
+plot(modlasso)
+plot(modlasso$lambda)
+
+pY = predict.lars(modlasso, Xtest, type = "fit", mode = "lambda", s=modlasso$lambda[1])
+MSElasso = mean((Ytest - pY$fit)^2)
+lambda = 1
+for (i in 2:length(modlasso$lambda)){
+  pY = predict.lars(modlasso, Xtest, type = "fit", mode = "lambda", s=modlasso$lambda[i])
+  newMSElasso = mean((Ytest - pY$fit)^2)
+  if (MSElasso > newMSElasso){
+    MSElasso = newMSElasso
+    lambda = i
+  }
+}
+
+lambda #lambda which gives the smallest mean square error
+MSElasso
+modlasso$lambda[lambda]
+coef = predict.lars(modlasso, Xtest, type = "coefficients", mode = "lambda", s = modlasso$lambda[lambda])
+coef$coefficients #coefficients obtained for this lambda
+```

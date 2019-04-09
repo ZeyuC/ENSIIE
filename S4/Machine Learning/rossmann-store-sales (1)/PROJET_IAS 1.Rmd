@@ -1,0 +1,310 @@
+---
+title: "PROJET_IAS"
+author: "LI _Ziheng"
+date: "2019/2/11"
+output: pdf_document
+---
+
+
+```{r, include=TRUE}
+train <- read.csv(file = 'train.csv', header = TRUE)
+store <- read.csv(file = 'store.csv', header = TRUE)
+```
+
+
+```{r, include=TRUE}
+library(dplyr)
+data <- left_join(train, store, by = c("Store" = "Store"))
+data
+DataSet <- data[,-c(1, 5, 6, 14,17, 18)]
+DataSet
+```
+
+```{r}
+
+year<-as.integer(substr(x = DataSet[,2], start = 1, stop = 4))
+DataSet[,2]<-as.integer(substr(x = DataSet[,2], start = 6, stop = 7))
+DataSet$CompetitionOpenSinceMonth[is.na( DataSet$CompetitionOpenSinceMonth)]<-0
+data$CompetitionOpenSinceMonth[is.na( data$CompetitionOpenSinceMonth)]<-0
+data$CompetitionOpenSinceyear[is.na( data$CompetitionOpenSinceYear)]<-0
+DataSet[,10]<-DataSet[,2]-DataSet[,10] + (year-data[,14])*12
+DataSet$CompetitionOpenSinceMonth[data$CompetitionOpenSinceMonth==0]<-0
+
+DataSet$Promo2SinceWeek[is.na( DataSet$Promo2SinceWeek)]<-0
+data$Promo2SinceYear[is.na(data$Promo2SinceYear)]<-0
+DataSet[,12]<-DataSet[,2]*4-DataSet[,12] + (year-data[,17])*12
+DataSet$Promo2SinceWeek[data$Promo2SinceYear==0]<-0
+
+
+DataSet<-DataSet[DataSet$Sales>0,]
+DataSet<- na.roughfix(DataSet)
+```
+
+竞争对手距离的正则化
+```{r, include=TRUE}
+#quantile <- quantile(DataSet$CompetitionDistance, 0.98)
+#DataSet$CompetitionDistance[DataSet$CompetitionDistance > quantile] <- quantile
+```
+
+```{r, include=TRUE}
+#DataSet$CompetitionDistance <- scale(DataSet$CompetitionDistance, center = FALSE, scale = TRUE)
+#hist(DataSet$CompetitionDistance)
+```
+
+```{r, include=TRUE}
+library(data.table)
+library(mltools)
+DataSet$DayOfWeek <- as.factor(DataSet$DayOfWeek)
+DataSet$Date <- as.factor(DataSet$Date)
+DataSet <- one_hot(as.data.table(DataSet))
+```
+
+
+数据集处理结束
+```{r}
+sum(is.na(DataSet) == TRUE)
+```
+
+
+
+数据可视化
+```{r, include=TRUE}
+library(corrplot)
+corr <- cor(DataSet[,c(seq(1,7,1),seq(9,15,1),8)])
+corrplot(corr, main = "the correlation with date",mar = c(0,0,1,0))
+```
+
+
+
+```{r, include=TRUE}
+corr <- cor(DataSet[,c(seq(16,24),8)])
+corrplot(corr, main = "the correlation with store",mar = c(0,0,1,0))
+```
+
+
+
+
+
+#linear model
+```{r, include=TRUE}
+n <- dim(DataSet)[1]
+TrainSize <- round(n)
+TrainIndex <- sample(1:n, size = TrainSize)
+
+NewDataset<- DataSet[TrainIndex,]
+
+n <- dim(NewDataset)[1]
+NewTrainSize <- round(n*.75)
+NewTrainIndex <- sample(1:n, size = NewTrainSize)
+NewTrain <-  NewDataset[NewTrainIndex,]
+NewTest <-  NewDataset[-NewTrainIndex,]
+
+```
+
+```{r, include=TRUE}
+modTrain = lm(Sales~., data = NewTrain)
+summary(modTrain)
+```
+
+
+```{r}
+library(MLmetrics)
+pre = predict.lm(modTrain, newdata = NewTest[,-20])
+cat("RMPSE =", RMSPE(pre,NewTest$Sales))
+
+```  
+
+
+
+```{r, include=TRUE}
+library(MASS)
+ modridge<-lm.ridge(Sales~.,data=TrainSet,lambda=seq(0,10,0.01))
+lambda<-modridge$lambda[which.min(modridge$GCV)]
+modridge<-lm.ridge(Sales~.,data=TrainSet,lambda=lambda)
+coef<-coef(modridge)
+un<-matrix(1,nrow=dim(as.vector(TestSet))[1],ncol=1)
+Y_esti<-cbind(un,as.matrix(TestSet[,-8]))%*%as.vector(coef)
+```
+
+
+
+```{r, include=TRUE}
+cat("RMSE =", sqrt(mean((Y_esti-TestSet$Sales)^2)))
+
+
+
+plot(as.matrix(Y_esti[c(seq(1,100))])-TestSet$Sales[c(seq(1,100))],xlab = "index ",ylab="bias error",ylim=c(-10000,10000) )
+abline(h=0)
+abline(h=4000)
+abline(h=-4000)
+```
+
+
+```{r, include=TRUE}
+
+library(randomForest)
+n <- dim(DataSet)[1]
+TrainSize <- round(n)
+TrainIndex <- sample(1:n, size = TrainSize)
+
+NewDataset<- DataSet[TrainIndex,]
+
+n <- dim(NewDataset)[1]
+
+NewTrainSize <- round(n*.75)
+NewTrainIndex <- sample(1:n, size = NewTrainSize)
+NewTrain <-  NewDataset[NewTrainIndex,]
+NewTest <-  NewDataset[-NewTrainIndex,]
+
+
+
+```
+
+
+```{r, include=TRUE}
+library(MLmetrics)
+for(i in 28:28)
+{
+    RF <- randomForest(Sales~., data=NewTrain, ntree=90,mtry=i,replace=FALSE,nodesize=1)
+    pred<-predict(RF,NewTest)
+    cat("RMSPE =",RMSPE(pred,NewTest$Sales),"\n")
+}
+
+
+```
+
+
+###test data
+```{r}
+test <- read.csv(file = 'test.csv', header = TRUE)
+data_test <- left_join(test, store, by = c("Store" = "Store"))
+DataSet_test <- data_test[,-c(1,2, 5, 13,16,17)]
+```
+prepare data
+```{r}
+
+year<-as.integer(substr(x = DataSet_test[,2], start = 1, stop = 4))
+DataSet_test[,2]<-as.integer(substr(x = DataSet_test[,2], start = 6, stop = 7))
+DataSet_test$CompetitionOpenSinceMonth[is.na( DataSet_test$CompetitionOpenSinceMonth)]<-0
+data_test$CompetitionOpenSinceMonth[is.na( data_test$CompetitionOpenSinceMonth)]<-0
+data_test$CompetitionOpenSinceyear[is.na( data_test$CompetitionOpenSinceYear)]<-0
+
+DataSet_test[,9]<-DataSet_test[,2]-DataSet_test[,9] + (year-data_test[,13])*12
+
+DataSet_test$CompetitionOpenSinceMonth[data_test$CompetitionOpenSinceMonth==0]<-0
+
+DataSet_test$Promo2SinceWeek[is.na( DataSet_test$Promo2SinceWeek)]<-0
+data_test$Promo2SinceYear[is.na(data_test$Promo2SinceYear)]<-0
+DataSet_test[,11]<-DataSet_test[,2]*4-DataSet_test[,11] + (year-data_test[,16])*12*4
+DataSet_test$Promo2SinceWeek[data_test$Promo2SinceYear==0]<-0
+
+
+DataSet<- na.roughfix(DataSet)
+DataSet
+```
+one - hot
+```{r}
+DataSet_test$DayOfWeek <- as.factor(DataSet_test$DayOfWeek)
+DataSet_test$Date <- as.factor(DataSet_test$Date)
+DataSet_test <- one_hot(as.data.table(DataSet_test))
+
+```
+
+```{r}
+Date_1<-as.integer( vector(length=dim(DataSet_test)[1]))
+Date_2<-Date_1
+Date_3<-Date_1
+Date_4<-Date_1
+Date_5<-Date_1
+Date_6<-Date_1
+Date_7<-Date_1
+
+
+Date_10<-Date_1
+Date_11<-Date_1
+Date_12<-Date_1
+DataSet_test<-cbind(DataSet_test[,1:9],Date_12,DataSet_test[,10:ncol(DataSet_test)])
+DataSet_test<-cbind(DataSet_test[,1:9],Date_11,DataSet_test[,10:ncol(DataSet_test)])
+DataSet_test<-cbind(DataSet_test[,1:9],Date_10,DataSet_test[,10:ncol(DataSet_test)])
+DataSet_test<-cbind(DataSet_test[,1:7],Date_7,DataSet_test[,8:ncol(DataSet_test)])
+DataSet_test<-cbind(DataSet_test[,1:7],Date_6,DataSet_test[,8:ncol(DataSet_test)])
+DataSet_test<-cbind(DataSet_test[,1:7],Date_5,DataSet_test[,8:ncol(DataSet_test)])
+DataSet_test<-cbind(DataSet_test[,1:7],Date_4,DataSet_test[,8:ncol(DataSet_test)])
+DataSet_test<-cbind(DataSet_test[,1:7],Date_3,DataSet_test[,8:ncol(DataSet_test)])
+DataSet_test<-cbind(DataSet_test[,1:7],Date_2,DataSet_test[,8:ncol(DataSet_test)])
+DataSet_test<-cbind(DataSet_test[,1:7],Date_1,DataSet_test[,8:ncol(DataSet_test)])
+
+StateHoliday_b<-Date_1
+StateHoliday_c<-Date_1
+DataSet_test<-cbind(DataSet_test[,1:22],StateHoliday_c,DataSet_test[,23:ncol(DataSet_test)])
+DataSet_test<-cbind(DataSet_test[,1:22],StateHoliday_b,DataSet_test[,23:ncol(DataSet_test)])
+```
+
+
+
+```{r, include=TRUE}
+DataSet_test
+pred<-predict(RF,DataSet_test)
+pred[which(data_test$Open!=1)] <- 0
+pred<-na.roughfix(pred)
+write.csv(pred,file = "res.csv")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

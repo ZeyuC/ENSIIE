@@ -1,0 +1,248 @@
+---
+title: "Analysis and Description of data"
+author: "Zeyu CHEN and Clément VEYSSIERE"
+date: "2018/11/11"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# 1 The general nature of the problem
+
+### Title of Database : Ailerons
+
+### Sources: Experiments of Rui Camacho (rcamacho@garfield.fe.up.pt)
+	
+### Description :This data set addresses a control problem, namely flying a F16 aircraft. The attributes describe the status of the aeroplane, while the goal is to predict the control action on the ailerons of the aircraft
+
+#2 The explanatory variables available
+```{r , include=TRUE}
+
+tab <- read.table("Ailerons/ailerons.data.txt",sep = ",")
+tab <- data.frame(1:nrow(tab),tab,row.names = 1)
+
+dim
+
+```
+###So we have 7154 instances and 41 variables,and each variable is a continuous number.
+
+###here we will show you the fisrt ten rows of our data.
+```{r , include=TRUE}
+names(tab) = c("climbRate","Sgz", "p", "q", "curPitch", "curRoll", "absRoll", "diffClb", "diffRollRate", "diffDiffClb", "SeTime1", "SeTime2", "SeTime3", "SeTime4", "SeTime5", "SeTime6", "SeTime7", "SeTime8", "SeTime9", "SeTime10" , "SeTime11", "SeTime12", "SeTime13", "SeTime14", "diffSeTime1", "diffSeTime2", "diffSeTime3", "diffSeTime4", "diffSeTime5", "diffSeTime6", "diffSeTime7", "diffSeTime8", "diffSeTime9", "diffSeTime10", "diffSeTime11", "diffSeTime12", "diffSeTime13", "diffSeTime14", "alpha", "Se", "goal")
+tab[1:5,]
+
+tab$SeTime2 <- as.double(tab$SeTime2)
+tab
+summary(tab)
+
+```
+```{r, include = FALSE}
+library(Amelia)
+tab$SeTime2 = as.double(tab$SeTime2)
+tab$diffSeTime2 = NULL
+
+
+```
+
+```{r, include = TRUE}
+library(corrplot)
+
+tabPredict <- tab
+tab = as.data.frame(tab)
+#tab = as.data.frame(scale(tab,center = FALSE))
+
+
+sub <- sample(nrow(tab), 0.75 * nrow(tab))
+tabTrain <- tab[sub,]
+tabTest <- tab[-sub,]
+
+res <- lm(goal~., data = tabTrain)
+summary(res)
+
+cor(tab)
+par(cex=0.5)
+corrplot(cor(tabTrain),type="lower")
+```
+
+
+```{r, include = TRUE}
+
+library("lars")
+library("glmnet")
+
+#resboth <- step(res,direction='both')
+reslasso<-  cv.glmnet(data.matrix(tabTrain[,-40]) ,y =as.vector(tabTrain$goal),type.measure="deviance",family="gaussian")
+#summary(resboth)
+
+
+#reslasso$lambda.min
+reslasso<-  cv.glmnet(data.matrix(tabTrain[,-40]) ,y = as.vector(tabTrain$goal),type.measure="deviance",family="gaussian",alpha=1)
+
+
+resrigde<-  cv.glmnet(data.matrix(tabTrain[,-40]) ,y =as.vector(tabTrain$goal),type.measure="deviance",family="gaussian",alpha=0)
+
+resNet<-  cv.glmnet(data.matrix(tabTrain[,-40]) ,y =as.vector(tabTrain$goal),type.measure="deviance",family="gaussian",alpha=0.2)
+#coef(reslasso$glmnet.fit, s = reslasso$lambda.min)
+#coef(resrigde$glmnet.fit, s = resrigde$lambda.min)
+
+pre <- predict(reslasso, newx = data.matrix(tabTest[,-40]), type="response" ,s=reslasso$lambda.min)  
+
+preR <- predict(resrigde, newx = data.matrix(tabTest[,-40]), type="response" ,s=resrigde$lambda.min)  
+
+preN <- predict(resNet, newx = data.matrix(tabTest[,-40]), type="response" ,s=resNet$lambda.min) 
+
+Prelm <- predict(res,newdata = tabTest)
+Preboth <- predict(resboth,newdata = tabTest)
+
+sigma <- 3*sd(Prelm-tabTest$goal)
+sigma
+plot(Prelm,Prelm-tabTest$goal)
+par(new=TRUE)
+abline(h=sigma)
+
+
+
+
+plot(Preboth,pre-tabTest$goal)
+
+plot(pre,pre-tabTest$goal)
+
+
+plot(preR,preR-tabTest$goal)
+
+plot(preN,preN-tabTest$goal)
+#sum squared residual
+SSRlasso <- sum((pre-tabTest$goal)^2)
+SSRrigde <- sum((preR-tabTest$goal)^2)
+SSNet <- sum((preN-tabTest$goal)^2)
+SSRlm <- sum((Prelm-tabTest$goal)^2)
+SSRboth<- sum((Preboth-tabTest$goal)^2)
+
+
+data.frame(SSRlm,SSRboth,SSRlasso,SSRrigde,SSNet)
+```
+
+
+```{r , include=TRUE}
+#k-Nearest Neighbour Regressio
+library(caret)
+
+fit <- knnreg(x = tabTrain ,y = tabTrain$goal, k = 5) 
+
+pred <- predict(fit, tabTest)
+
+plot(pred,pred-tabTest$goal)
+
+sum((pred-tabTest$goal)^2)
+
+
+```
+
+
+
+
+```{r , include=TRUE}
+
+kemans_lm <- function(k)
+{
+  i<-0
+  kmTrain <- kmeans(tabTrain[,-40], k)
+  tabls <-list()
+  tabT <- data.frame()
+  cl <- rep()
+  for(i in 1:k)
+  {
+     tabls[[i]] <- tabTrain[kmTrain$cluster==i,]
+     tabT <- rbind(tabT,tabls[[i]])
+     cl <- factor(c(cl,rep(as.character(i),dim(tabls[[i]])[1])))
+  }
+  
+  class <- knn(tabT, tabTest, cl, k = k)
+  RSS<-0
+  i<-0
+  for(i in 1:k)
+  {
+    Test <- tabTest[class==i,]
+    resls <- lm(goal~.,data = tabls[[i]])
+    resboth <- step(resls,direction='both',trace = 0)
+    Preboth <- predict(resboth ,newdata = Test)
+    RSS <- RSS+ sum((Preboth - Test$goal)^2)
+  }
+  return(RSS)
+}
+
+resls <-1
+i <- 0
+for(i in 1:3)
+{
+  rss <- kemans_lm(i)
+  if(rss < resls)
+  {
+    index <- i 
+    resls <- rss
+  }
+}
+resls 
+index
+```
+
+
+
+
+```{r , include=TRUE}
+
+kmTrain <- kmeans(tabTrain, 2)
+
+tab1 <- tabTrain[kmTrain$cluster==1,]
+tab2 <- tabTrain[kmTrain$cluster==2,]
+#tab3 <- tabTrain[kmTrain$cluster==3,]
+#tab4<- tabTrain[kmTrain$cluster==4,]
+#tab5 <- tabTrain[kmTrain$cluster==5,]
+
+tabT <- rbind(tab1,tab2)
+#cl <- factor(c(rep("1",dim(tab1)[1]),rep("2",dim(tab2)[1]),rep("3",dim(tab3)[1]),rep("4",dim(tab4)[1]),rep("5",dim(tab5)[1])))
+cl <- factor(c(rep("1",dim(tab1)[1]),rep("2",dim(tab2)[1])))
+k <- knn(tabT, tabTest, cl, k = 2)
+
+tabTest1 <- tabTest[k==1,]
+tabTest2 <- tabTest[k==2,]
+#tabTest3 <- tabTest[k==3,]
+#tabTest4 <- tabTest[k==4,]
+#tabTest5 <- tabTest[k==5,]
+
+res1 <- lm(goal~.,data = tab1)
+res2 <- lm(goal~.,data = tab2)
+#res3<- lm(goal~.,data = tab3)
+#res4<- lm(goal~.,data = tab4)
+#res5<- lm(goal~.,data = tab5)
+
+resboth1 <- step(res1,direction='both')
+Preboth1 <- predict(resboth1,newdata = tabTest1)
+
+resboth2 <- step(res2,direction='both')
+Preboth2 <- predict(resboth2,newdata = tabTest2)
+
+#resboth3 <- step(res3,direction='both')
+#Preboth3 <- predict(resboth3,newdata = tabTest3)
+
+#resboth4 <- step(res4,direction='both')
+#Preboth4 <- predict(resboth4,newdata = tabTest4)
+
+#resboth5 <- step(res5,direction='both')
+#Preboth5 <- predict(resboth5,newdata = tabTest5)
+
+sum((Preboth1-tabTest1$goal)^2)+sum((Preboth2-tabTest2$goal)^2)
+#sum((Preboth1-tabTest1$goal)^2)+sum((Preboth2-tabTest2$goal)^2)+sum((Preboth3-tabTest3$goal)^2)+sum((Preboth4-tabTest4$goal)^2)+sum((Preboth5-tabTest5$goal)^2)
+
+```
+### We can find that all the points are roughly symmetrically distributed around the x-axis,so it will be reasonable to use linear regression.
+
+
+
+
+
+
+
+

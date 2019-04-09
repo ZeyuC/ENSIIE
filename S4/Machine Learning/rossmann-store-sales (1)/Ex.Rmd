@@ -1,0 +1,187 @@
+---
+title: "Exemple"
+author: "Zeyu CHEN"
+date: "2019/4/4"
+output: html_document
+---
+
+```{r, include=TRUE}
+library(dplyr)
+library(data.table)  
+library(h2o)
+
+cat("reading the train and test data (with data.table) \n")
+train <- fread("train.csv",stringsAsFactors = T)
+test  <- fread("test.csv",stringsAsFactors = T)
+store <- fread("store.csv",stringsAsFactors = T)
+train <- train[Sales > 0,]  ## We are not judged on 0 sales records in test set
+    ## See Scripts discussion from 10/8 for more explanation.
+train <-data.table(left_join(train, store, by = "Store"))
+test <- data.table(left_join(test,store,by="Store"))
+
+cat("train data column names and details\n")
+summary(train)
+cat("test data column names and details\n")
+summary(test)
+
+## more care should be taken to ensure the dates of test can be projected from train
+## decision trees do not project well, so you will want to have some strategy here, if using the dates
+train[,Date:=as.Date(Date)]
+test[,Date:=as.Date(Date)]
+
+# seperating out the elements of the date column for the train set
+train[,month:=as.integer(format(Date, "%m"))]
+train[,year:=as.integer(format(Date, "%y"))]
+train[,week:=as.integer(format(Date, "%w"))]
+train[,Store:=as.factor(as.numeric(Store))]
+
+
+test[,month:=as.integer(format(Date, "%m"))]
+test[,year:=as.integer(format(Date, "%y"))]
+test[,week:=as.integer(format(Date, "%w"))]
+test[,Store:=as.factor(as.numeric(Store))]
+
+
+## log transformation to not be as sensitive to high sales
+## decent rule of thumb: 
+##     if the data spans an order of magnitude, consider a log transform
+train[,logSales:=log1p(Sales)]
+
+DataSet = train
+```
+
+
+```{r, include=TRUE,eval=TRUE}
+library(randomForest)
+#is.na( DataSet$CompetitionOpenSinceMonth)&is.na( DataSet$CompetitionOpenSinceYear)&is.na( DataSet$CompetitionDistance)
+
+
+#For any store which doesn’t has competitor (competitor==1), we assign CompetitionDistance as a large number 100000. 
+DataSet$CompetitionDistance[is.na(DataSet$CompetitionOpenSinceMonth)&is.na( DataSet$CompetitionOpenSinceYear)&is.na( DataSet$CompetitionDistance)] <- 100000
+
+#Impute miss value for CompetitionOpenSinceMonth and CompetitionOpenSinceYear by "na.roughfix"
+
+DataSet$CompetitionOpenSinceMonth<-na.roughfix(DataSet$CompetitionOpenSinceMonth)
+DataSet$CompetitionOpenSinceYear<-na.roughfix(DataSet$CompetitionOpenSinceYear)
+
+condition1<-DataSet$year<DataSet$CompetitionOpenSinceYear
+condition2<-DataSet$month<DataSet$CompetitionOpenSinceMonth
+DataSet$CompetitionDistance[condition1&condition2] <- 100000
+
+
+#(DataSet$Promo2==1)&is.na(DataSet$Promo2SinceWeek)&is.na(DataSet$Promo2SinceYear)
+#(DataSet$Promo2==1)&is.na(DataSet$PromoInterval)
+
+#Combine Promo2, Promo2SinceWeek, Promo2SinceYear and Promointerval to a promotion 2 indicator in historical sales data. The indicator indicates on a certain day whether a certain store is on promotion 2.
+
+condition3<-DataSet$year<DataSet$Promo2SinceYear
+condition4<-DataSet$week<DataSet$Promo2SinceWeek
+condition5<-DataSet$Promo2==1
+#将日期在promo2开始之前的设为0
+#for test sum( DataSet$Promo2[condition3&condition4&condition5])=190000
+DataSet$Promo2[condition3&condition4&condition5]<-0
+#for test sum( DataSet$Promo2[condition3&condition4&condition5])=0
+
+#promoInterval 
+in_1_4_7_10<-DataSet$PromoInterval=='Jan,Apr,Jul,Oct'
+in_2_5_8_11<-DataSet$PromoInterval=='Feb,May,Aug,Nov'
+in_3_6_9_12<-DataSet$PromoInterval=='Mar,Jun,Sept,Dec'
+#promo2 is 1, and month in PromoInterval
+DataSet$Promo2[condition5&!(DataSet$month %in% c(1,4,7,10))&in_1_4_7_10]<-0
+DataSet$Promo2[condition5&!(DataSet$month %in% c(2,5,8,11))&in_2_5_8_11]<-0
+DataSet$Promo2[condition5&!(DataSet$month %in% c(3,6,9,12))&in_3_6_9_12]<-0
+
+
+```
+
+```{r, include=FALSE}
+
+
+
+train <- as.data.table(DataSet) 
+train[,CompetitionDistance:=log1p(CompetitionDistance)]
+#train$CompetitionDistance=log1p(train$CompetitionDistance)
+## Use H2O's random forest
+## Start cluster with all available threads
+h2o.init(nthreads=-1,min_mem_size = '10G')
+## Load data into cluster from R
+trainHex<-as.h2o(train)
+## Set up variable to use all features other than those specified here
+features<-colnames(train)[!(colnames(train) %in% c("Id","Date","Sales","logSales","Customers","StateHoliday","SchoolHoliday","Promo2SinceWeek","Promo2SinceYear","CompetitionOpenSinceMonth","CompetitionOpenSinceYear","week"))]
+## Train a random forest using all default parameters
+rfHex <- h2o.randomForest(x=features,
+                          y="logSales",
+                          ntrees = 60,
+                          max_depth = 14,
+                          nbins_cats = 1115, ## allow it to fit store ID
+                          training_frame=trainHex)
+
+summary(rfHex)
+cat("Predicting Sales\n")
+
+DataSet_test <- test
+```
+
+```{r, include=TRUE,eval=TRUE}
+
+library(randomForest)
+#is.na( DataSet$CompetitionOpenSinceMonth)&is.na( DataSet$CompetitionOpenSinceYear)&is.na( DataSet$CompetitionDistance)
+
+#For any store which doesn’t has competitor (competitor==1), we assign CompetitionDistance as a large number 100000. 
+DataSet_test$CompetitionDistance[is.na(DataSet_test$CompetitionOpenSinceMonth)&is.na(DataSet_test$CompetitionOpenSinceYear)&is.na( DataSet_test$CompetitionDistance)] <- 100000
+
+#Impute miss value for CompetitionOpenSinceMonth and CompetitionOpenSinceYear by "na.roughfix"
+
+DataSet_test$CompetitionOpenSinceMonth<-na.roughfix(DataSet_test$CompetitionOpenSinceMonth)
+DataSet_test$CompetitionOpenSinceYear<-na.roughfix(DataSet_test$CompetitionOpenSinceYear)
+
+condition1<- DataSet_test$year<DataSet_test$CompetitionOpenSinceYear
+condition2<- DataSet_test$month<DataSet_test$CompetitionOpenSinceMonth
+DataSet_test$CompetitionDistance[condition1&condition2] <- 100000
+
+
+condition3<-DataSet_test$year<DataSet_test$Promo2SinceYear
+condition4<-DataSet_test$week<DataSet_test$Promo2SinceWeek
+condition5<-DataSet_test$Promo2==1
+#将日期在promo2开始之前的设为0
+#for test sum( DataSet$Promo2[condition3&condition4&condition5])=190000
+DataSet_test$Promo2[condition3&condition4&condition5]<-0
+#for test sum( DataSet$Promo2[condition3&condition4&condition5])=0
+
+
+#promoInterval 
+in_1_4_7_10<-DataSet_test$PromoInterval=='Jan,Apr,Jul,Oct'
+in_2_5_8_11<-DataSet_test$PromoInterval=='Feb,May,Aug,Nov'
+in_3_6_9_12<-DataSet_test$PromoInterval=='Mar,Jun,Sept,Dec'
+#promo2 is 1, and month in PromoInterval
+DataSet_test$Promo2[condition5&!(DataSet_test$month %in% c(1,4,7,10))&in_1_4_7_10]<-0
+DataSet_test$Promo2[condition5&!(DataSet_test$month %in% c(2,5,8,11))&in_2_5_8_11]<-0
+DataSet_test$Promo2[condition5&!(DataSet_test$month %in% c(3,6,9,12))&in_3_6_9_12]<-0
+```
+
+```{r,include=FALSE}
+test <-as.data.table(DataSet_test)  
+test[,CompetitionDistance:=log1p(CompetitionDistance)]
+## Load test data into cluster from R
+testHex<-as.h2o(test)
+
+## Get predictions out; predicts in H2O, as.data.frame gets them into R
+predictions<-as.data.frame(h2o.predict(rfHex,testHex))
+predictions[which(test$Open!=1),] <- 0
+## Return the predictions to the original scale of the Sales data
+pred <- expm1(predictions[,1])
+
+summary(pred)
+
+
+
+submission <- data.frame(Id=test$Id, Sales=pred)
+
+cat("saving the submission file\n")
+write.csv(submission, "h2o_rf.csv",row.names=F)
+
+```
+
+```{r,include=TRUE}
+plot(train$Sales,train$CompetitionDistance)
+```

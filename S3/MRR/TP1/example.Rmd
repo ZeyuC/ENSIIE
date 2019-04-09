@@ -1,0 +1,37 @@
+---
+title: "Practical sessions with R"
+author: ' '
+date: "September 2018"
+output: html_document
+---
+  
+#### Introduction
+  
+ Use of R for machine learning problems.
+
+#### The data
+
+```{r,eval=FALSE,echo=TRUE}
+#example
+```
+
+#### Statistical indicators on the data
+a) first example
+```{r,eval=TRUE,echo=TRUE}
+apply(iris[,1:4],2,mean)
+```
+
+b) second example
+
+```{r,eval=FALSE,echo=FALSE}
+apply(iris[,1:4],2,sd)
+```
+
+#### Visualization
+
+```{r,fig.height=4,fig.width=4, fig.pos = 'h', fig.align = 'center', fig.cap="Iris data", eval=TRUE,echo=TRUE}
+plot(iris);
+```
+
+
+

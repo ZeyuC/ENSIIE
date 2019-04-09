@@ -1,0 +1,345 @@
+---
+title: "TP1_Analyse_Donnee"
+author: "Zeyu CHEN"
+date: "2018/10/1"
+output: pdf_document
+---
+
+### Sachant que le QI suit une loi Normale centrée sur 100 et d'ecart type 15
+### 1) calculer la prob d'avoir un QI supérieur à 120
+### 2) calculer la prob d'avoir un QI inférieur à 100
+```{r , include=TRUE}
+
+pnorm(120 , mean = 100,sd=15,lower.tail = FALSE)
+
+pnorm(100 , mean = 100,sd=15,lower.tail = TRUE)
+
+x <- 1:200
+y <- dnorm(x, 100,15)
+
+#plot(x,y,xlim=c(0,200))
+#par(new = TRUE)
+#abline(v = 120, col= 2)
+
+library(ggplot2)
+
+
+ggplot(data.frame(x =c(20,180)),aes(x)) + stat_function(fun=dnorm,args = c(mean=100,sd=15))+geom_vline(xintercept =120,col="pink")+geom_label(x=130,y=0.003,label = "0.1%")
+
+
+
+```
+
+### trouvez toutes les fleurs avec de langues ou des langueurs de pétable et sepales extremes.
+```{r , include=TRUE}
+data("iris")
+plot(iris)
+xL <- mean(iris$Sepal.Length)
+sdL <- sqrt(var(iris$Sepal.Length))
+x1 <- xL + 2*sdL
+x2 <- xL - 2*sdL
+
+yL <- mean(iris$Sepal.Width)
+sdL <- sqrt(var(iris$Sepal.Width))
+y1 <- yL + 2*sdL
+y2 <- yL - 2*sdL
+
+plot(iris$Sepal.Length,iris$Sepal.Width)
+abline(v=c(x1,x2))
+abline(h=c(y1,y2))
+plot(iris$Petal.Width,iris$Petal.Width)
+xW <- mean(iris$Sepal.Width)
+```
+### Generer un échantillon d'une lois normal bi-dimensionnelle N(u,sigma) avec
+$$ \sum=\bigl(\begin{smallmatrix}
+ 2 & 1 \\ 1 
+ & 0.75
+\end{smallmatrix}\bigr) $$ et $$ \binom{0}{0} $$
+
+Soit X1,...,Xp variables iid N(0,1) aloir X=(X1,...,Xp) suis N(0,Ip)
+On cherche une martice A de taille p*p telle que Var(Ax)= $\sum$
+$ Var(AX)  =A^TVar(X)A=A^TI_pA=A^TA$
+Donc, $\sum=A^TA$
+2 solution
+1) Decompostition de cholesky $\sum=T^tT$ où T est uen matrice trianglulaire
+
+2) Décomposition SVD $\sum = UDU^t$ où 
+D= matrice diagonale des valeur propres
+U= matrice des vecteur propres => $A= UD^{1/2}$
+
+$Y = AX + \mu$ où $\mu = \binom{0}{0}$ , Y suit une loi multivariée 
+$N(\mu,\sum) $ appartient à n R
+
+-génerer 2000 obeservation
+-créer avec  Rnorm -> matrice de taille 2000
+- A = chol$(\sum)$
+- Y = A %*%X 
+where (A is $2*2$, X is $2*1000$)
+
+2) Tracer les observation 
+
+3) Ellipses d'équiprobabilité multiples de 5%
+-> $Y \sim N(\mu,\sum)$ alors, $ X = \sum^{-1/2}(Y-\mu) \sim N(0,I_p) $
+
+=> $Q = X^TX \sim \chi^2_2$  $P(Q < q)= \alpha$
+q = quantile d'ordre $\alpha\%$ d'une loi $\chi^2_2$ 
+-> $qchisq(\alpha,df=2)$ 
+$Q = X^TX =(\sum^{-1/2}(y-\mu)^T(\sum^{-1/2}(y-\mu))$
+=$(y-\mu)^T((\sum^{-1/2})^T\sum^{-1/2}(y-\mu))$
+=$(y-\mu)^T\sum^{-1}(y-\mu)= y^T\sum^{-1}y $
+$$(\sum)^{-1}=\bigl(\begin{smallmatrix}
+ a & c \\ c 
+ & b
+\end{smallmatrix}\bigr)$$
+
+$  Q = y_1^2a+y_2^2b+2y_1y_2c $
+
+
+```{r , include=TRUE}
+sigma <- matrix(c(2,1,1,0.75), nrow = 2,ncol = 2)
+
+y <- matrix(rnorm(2000),1000,2)%*% chol(sigma)
+
+plot(y)
+```
+
+```{r , include=TRUE}
+y1 <- seq(-4,4,length.out=100)
+y2 <- seq(-4,4,length.out=100)
+
+sigmainv <- solve(sigma)
+
+a<- sigmainv[1,1]
+b<- sigmainv[2,2]
+c<- sigmainv[1,2]
+#q <-  y1*y1*a+y2*y2*b+2*y1*y2*c
+
+q <- outer(y1,y2,function(y1,y2)(y1*y1*a+y2*y2*b+2*y1*y2*c))
+q
+
+image(y1,y2,q)
+Q <- qchisq(p = seq(0.05,0.95,by=0.1),2)
+contour(y1,y2,q,col="blue",levels = Q,add=TRUE)
+
+```
+
+```{r , include=TRUE}
+sigma
+chol(sigma)
+sigmainv <- solve(sigma)
+sigmainv
+```
+
+# TD2 Classification
+### crabs dans la bibrary MASS
+1) charger les données
+2) decrire les données 
+  1) nb d'obs
+  2) nb de variables
+  3) type de variables
+3) sélectionner les variables quantitatives
+4) tracer ces variables en fonc des unes des autres
+   1 couleur pour chaque couleur de crabe
+   1 forme de point pour chaque sexe de crabe
+5) appliquer les k means sur les var quantitatives
+
+6) comparer avec les vrais classes trueclass : M-O,M-B,F-O,F-B
+
+```{r , include=TRUE}
+#1)
+library(MASS)
+data(crabs)
+crabs
+#2)
+nrow(crabs)
+dim(crabs)
+str(crabs)
+
+#3)
+crabs_quanti <- crabs[,4:8]
+crabs_quanti
+
+#4)
+colors <- c("blue","orange")
+crabs$sp
+col = colors[crabs$sp]
+
+
+pchs <- c(20,21)
+crabs$sex
+pch <- pchs[crabs$sex]
+
+pairs(crabs_quanti,col=col,pch=pch)
+
+#5)
+R <- kmeans(crabs_quanti,centers = 4)
+c <- R$cluster
+
+trueclass <- paste(crabs$sex,crabs$sp,sep = "-")
+table(c,trueclass)
+#6)Run the algo with 1000 different initialization and keep track of 
+# the within sum of squares (WSS using att withinss)
+WSS <- vector(length = 1000)
+for(i in 1:1000)
+{
+R <- kmeans(crabs_quanti,centers = 4)
+WSS[i] <- sum(R$withinss)
+}
+hist(WSS,col="blue")
+```
+
+```{r , include=TRUE}
+#7)Divide all quantitative variable by the most correlated variable to 
+# produce a new dataset
+crabs
+crabs_quanti
+cor(crabs_quanti)
+colMeans(cor(crabs_quanti))
+c2 <- subset(crabs_quanti,select = -CL)
+
+#8)Try to cluster the data in 1 to 20 groups. Plot the withinSS in
+# function of the number of cluster  Comment the figure
+wss_f <- function(data,k){
+  pi <- kmeans(data,k)
+  wss <- sum(pi$withinss)
+  return(wss)
+}
+wss_k <- sapply(X = c(1:50),FUN = wss_f,data=c2)
+
+plot(wss_k)
+```
+
+#TD Clustering using the Kmeans algo
+
+
+## EX1 Partition and matrix
+### consider the iris data set, Write a R code which produces the partition ### matrix . Compute the gravity centers of the quantitative variables in 
+### the three classes using a matrix formula.
+```{r , include=TRUE}
+library(nnet)
+library(magrittr)
+library(dplyr)
+library(ggplot2)
+data("iris")
+C <- class.ind(iris$Species)
+
+kmeans.res <- iris %>%
+select(-Species,-Sepal.Length,-Sepal.Width) %>%
+kmeans(3,nstart = 10)
+
+cluster <- as.factor(kmeans.res$cluster)
+
+centers <- as_tibble(kmeans.res$centers)
+
+
+ggplot(iris, aes(x=Petal.Length, y=Petal.Width, color=cluster))+
+geom_point() +
+geom_point(data=centers, color='coral',size=4,pch=21)+
+geom_point(data=centers, color='coral',size=50,alpha=0.2)
+
+knitr::kable(table(iris$Species, kmeans.res$cluster),caption = "Table de contingence croisant réalité et estimation de la structure par k-means")
+
+
+library(deldir)
+
+voronoi <- deldir(centers$Petal.Length, centers$Petal.Width)
+
+```
+
+
+
+#TD Mixture Models
+
+## EX1 One dimensional mixture of Gaussians
+### 1
+```{r , include=TRUE}
+gaus1 <- rnorm(333,0,1)
+gaus2 <- rnorm(667,4,1/2)
+
+gaus <- c(gaus1,gaus2)
+plot(gaus)
+```
+
+### 2
+```{r , include=TRUE}
+res <- kmeans(gaus,centers = 2)
+```
+
+### 3
+```{r , include=TRUE}
+Mean <- res$centers
+
+Std <- sqrt(res$withinss/res$size)
+
+data.frame(Mean,Std)
+```
+
+### 4
+```{r , include=TRUE}
+library(mclust)
+# Une seul Variance pour tous les groups si on utilise E
+clust = Mclust(gaus, modelNames = "E")
+clust$parameters
+
+clust1 = Mclust(gaus, modelNames = "V")
+clust1$parameters
+```
+
+### 5
+```{r , include=TRUE}
+#Mclust with modelNames="V" can produce the best result . In addition, kmeans is a 
+#good way also but we should indicate clairly that how much is centers. Last, the  #result generated by Mclust with modelNames="E" is bad.
+```
+
+## EX2 Bi-dimensional mixture
+
+### 1
+```{r , include=TRUE}
+data("faithful")
+faithful
+```
+### 2
+```{r , include=TRUE}
+plot(faithful)
+# Il y a deux group de donnée
+```
+### 3
+```{r , include=TRUE}
+VVI = Mclust(faithful, modelNames = "VVI")
+
+VVI$classification
+
+
+VVI$parameters
+
+#? question : qu'es ce que c'est sigmasq 
+```
+### 4
+```{r , include=TRUE}
+plot(VVI)
+#1 Courbe du BIC de 1 à 9 classes
+
+#2 Classification des observations(k=argmax(Bic))
+
+#3 Classification des observations + probp d'appartenir à cette classe(plus les points sont peties, plus on est certain qu'iks appartiennent à la classe)
+
+#4 Densité de la moi melange
+```
+### 5.6
+```{r , include=TRUE}
+#library(dplyr)
+#reshc <- faithful%>%dist%>%hclust(method = "ward.D2") 
+
+reshc <- hclust(dist(faithful),method = "ward.D2")
+plot(reshc)
+reshc2<-cutree(reshc,2)
+reshc3<-cutree(reshc,3)
+resmc2 = Mclust(faithful, G=2)
+resmc3 = Mclust(faithful, G=3)
+table(reshc2,resmc2$classification)
+table(reshc3,resmc3$classification)
+```
+
+```{r , include=TRUE}
+
+```

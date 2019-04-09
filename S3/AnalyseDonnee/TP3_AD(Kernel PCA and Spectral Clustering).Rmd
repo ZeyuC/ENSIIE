@@ -1,0 +1,52 @@
+---
+title: "TP3_MAD"
+author: "Zeyu CHEN"
+date: "2018/12/3"
+output: pdf_document
+---
+
+#EX1. Kernel Principal Component Analysis
+
+
+##1.1 Install the kernlab package and load the dataset spam
+```{r , include=TRUE}
+library(kernlab)
+library(FactoMineR)
+library(factoextra)
+data(spam)
+```
+
+##1.2 perform a principal component analysis of the spam dataset
+```{r , include=TRUE}
+dataSpam <- spam[,-which(colnames(spam)=='type')]
+
+pca <- PCA(dataSpam,axes=c(1,2),graph = FALSE)
+```
+
+##1.3 Display the emails in the plane of the first two principal components with a 
+##color corresponding to their status
+```{r , include=TRUE}
+fviz_eig(pca, addlabels = TRUE, ylim = c(0, 20))
+
+
+fviz_pca_ind(pca, col.ind = spam$type)
+
+fviz_pca_var(pca, col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE # Avoid text overlapping 
+             )
+
+```
+
+##1.4 Do the same using various kernel and using KPCA
+```{r , include=TRUE}
+
+sub <- sample(nrow(dataSpam), nrow(dataSpam)*0.1)
+Train <- spam[sub,]
+
+Kpca <- kpca(~.,data=Train,kernel='rbfdot',kpar=list(sigma = 0.001))
+
+summary(Kpca)
+
+plot(rotated(Kpca),col=Train[,"type"])
+```

@@ -1,0 +1,403 @@
+---
+title: "Méthodes de rejet et de transformation "
+author: "HASSINI Houda & FERRERI Mickael &  CHEN zeyu"
+date: "13 février 2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Nous sommes le groupe $2$ avec $05, \ 10, \ 30$. Nous nous sommes attribué les notes suivantes, $\\$
+$05$ : $3/3$, $10$ : $3/3$, $30$ : $3/3$.
+
+
+#Méthodes de rejet et de transformation 
+##Exercice 5
+
+
+1.On pose , $Y = \left |X \right|$
+Donc , dx = -dy  quand x < 0 
+et dx = dy quand x > 0
+$$\mathbb{E}_X[h(x)] = \int_{-\infty }^{+\infty} h(x)f_X(x)dx  $$
+
+$$= \int_{-\infty }^{0} h(x)f_X(x)dx +\int_{0 }^{\infty} h(x)f_X(x)dx $$
+$$= \int_{0}^{\infty} h(-x)f_X(-x)d(-x) +\int_{0 }^{\infty} h(x)f_X(x)dx $$
+$$= \int_{0}^{\infty} h(y)f_X(y)d(y) +\int_{0 }^{\infty} h(y)f_X(y)dy $$
+$$ = \int_{0 }^{\infty} h(y)2f_X(y)dy = E_Y[h(y)]$$
+
+Donc 
+ 
+$f_Y(y) = 2f_X(y)\mathbb{I}_{y>0}$
+
+
+2. POut tout $x \in \mathbb{R}$ on a $$(x-1)^2 \geq 0$$  donc $$x^2 \geq 2x-1 $$ puis $$e^{-\frac{1}{2}x^2 }\leq e^\frac{1}{2} e^{-x}$$
+en multipliant par $$ \frac{2}{\sqrt{2 \pi}} $$ les deux cotés de l'inégalité on obtient apres simplification $$\boxed{f(x) \leq \sqrt{\frac{2e}{\pi}}}$$
+
+3. On simule la variable aléatoire $|X|$ grace à la méthode de rejet.
+Selon le résultats de la question 2. Nous pouvons conclure qu'il existe une variables aléatoire $Y$  suivant une loi exponentielle qu'on sait simuler.
+Il suffit par la suite de suivre l'algorithme d ela simulation par rejet afin de simuler l'echantillon de la variables $|X|$
+
+
+
+```{r , include = TRUE}
+#fonction indicatrice:
+ind <- function(x) ifelse(x>0, 1,0)
+f <- function(x) {
+  return((2/sqrt((2*pi)))*exp(-x*x/2)*ind(x))
+}
+#fonction exponnentielle
+g <- function(x) {
+  return (exp(-x))
+}
+
+#paramètre c
+c <- sqrt(2*exp(1)/pi)
+
+#Simulation d'un echantillon suivant une loi exponentielle
+exponentielle <- function(n, lambda) {
+  vect = 1:n
+  rand = 0
+  for (i in 1:n) {
+    rand = runif(1)
+    vect[i] = - log(rand)/lambda
+  }
+  return(vect)
+}
+
+#Méthode du rejet 
+rejet <- function (N) {
+  x= c()
+  for(i in 1:N){
+  u <- runif (1,0,1)
+  y <- exponentielle (1,1)
+  h <- f(y)/(c*g(y))
+  while (u>=h){
+    u <- runif (1,0,1)
+    y <- exponentielle (1,1)
+    h <- f(y)/(c*g(y))
+  }
+  x[i]= y
+  }
+  return(x)
+}
+#Echantillon , Diagramme de fréquences et densité théoriques
+x<- rejet(100000)
+hist(x,freq= FALSE, col= "Darkblue",main = "Histogrammes des fréquences", ylab= "Frequence")
+a<-c(0:400)/100
+par(new=TRUE)
+y<-f(a)
+lines(a,y, col= "Red")
+legend("topright", c("Valeur experimentale des fréquences","Valeur de densité théorique"),
+       fill= c("darkblue", "red"))
+
+```
+
+
+On ramarque que l'istogramme corespond parfaitement aux valeurs théoriques.
+
+
+5.
+6.Afin de similer un echantillon de X , il suffit d'utiliser le fait d'avoir X et $\theta |X|$ qui suivent la même loi. il suffit donc d'atribuer un signe positif ou négatif à l'échantillon .
+Pour ceci nous avons multiplé attribuer un signe positif ou négatif avec un probabilité $\frac{1}{2}$ pour chacun 
+```{r, include = TRUE}
+theta <-(1:100000)
+for (i in 1:100000){
+  u<- runif(1,0,1)
+  if(u>0.5){
+    u <- 1
+  }
+  else u<--1
+  theta [i] <- u
+}
+X_binomiale <-theta*x
+hist(X_binomiale, freq= FALSE, col= "Darkblue",main = "Histogrammes des fréquences", ylab= "Frequence")
+
+f1 <- function(x) {
+  return((1/sqrt((2*pi)))*exp(-x*x/2))
+  
+}
+a<-c(-400:400)/100
+y<-f1(a)
+lines(a,y, col= "Red")
+legend("topright", c("Valeur experimentale des fréquences","Valeur de densité théorique"),
+       fill= c("darkblue", "red"))
+
+
+```
+
+
+En observant le diagramme , on remarque que les valeurs des fréquences d'apparition des $a_i$ correspond aux densités théoriques.
+
+##Exercice 6
+
+
+Grâce à l'algorithme fourni nous allons simuler N= 10000 point de la variable aléatoire X.
+
+
+```{r}
+#1
+gen_var_ex_6 <- function(N){
+  U1 <- 1:N
+  U2 <- 1:N
+  for (i in 1:N) {
+    u1 <- 2*runif(1,0,1)-1
+    u2 <- 2*runif(1,0,1)-1
+    while(u1*u1+u2*u2>1){
+       u1 <- 2*runif(1,0,1)-1
+       u2 <- 2*runif(1,0,1)-1
+    }
+    U1[i] <- u1
+    U2[i] <- u2 
+  }
+  plot(U1,U2)
+  return(c(U1,U2))
+}
+```
+
+
+Cette loi est une loi uniforme en dimension 2
+
+
+```{r}
+#2
+N<-10000
+vec <- gen_var_ex_6(N)
+```
+
+##Exercice 6 (Box-Muller)
+
+1.On a $X_1 = \sqrt{R}cos(\Theta)$ et $X_2 = \sqrt{R}sin(\Theta)$
+
+Par consequence , on peut déduire que $R = X_1^2+X_2^2$  et $\Theta = arctan(X_2/X_1)$
+
+On sais que $f_{(X_1,X_2)}(X)=f_{(R,\Theta)}(R,\Theta)*det(J(X))=f_{R}(R)*f_{\Theta}(\Theta)*det(J(X))$
+
+Donc, on dois juste calculer J(X)
+
+$$ J(X)= \begin{pmatrix}
+ \frac{\partial R}{\partial X_1}  & \frac{\partial R}{\partial X_2}\\ \frac{\partial \Theta}{\partial X_1}
+ &\frac{\partial \Theta}{\partial X_2}
+\end{pmatrix} $$ 
+
+$$= \begin{pmatrix}
+ 2X_1  & 2X_2\\ \frac{-X_2}{X_1^2+X_2^2}
+ &\frac{X_1}{X_1^2+X_2^2}
+\end{pmatrix}$$
+
+Alors , $det(J(X)) = \frac{2(X_1^2+X_2^2)}{X_1^2+X_2^2}=2$
+
+Finalement , on a $$f_{(X_1,X_2)}(x) = f_{R}(r)*f_{\Theta}(\theta)*det(J(X)) =  \frac{1}{2\pi}exp(-(x_1^2+x_2^2)/2) = \frac{1}{\sqrt{2\pi}}exp(-x_1^2/2)*\frac{1}{\sqrt{2\pi}}exp(-x_2^2/2)$$
+
+ils sont independentes car $f_{(X_1,X_2)}(x)=f_{X_1}(x_1)f_{X_2}(x_2)$ 
+
+2. Nous allons maintenant deduire du résultats précedent une simulation de taille N =10000 de loi gaussienne bidimensionnelle
+
+```{r}
+expo <- function(N,lambda){
+  u <- runif(N,0,1)
+  return(-log(u)/lambda)
+}
+#2
+gen_pair_gauss <- function(N){
+  U1 <- sqrt(expo(N,1/2))*cos(runif(N,0,2*pi))
+  U2 <- sqrt(expo(N,1/2))*sin(runif(N,0,2*pi))
+  return(c(U1,U2))
+}
+```
+
+```{r}
+densite_theo_norm <- function(x,y){
+  return(exp(-(x*x+y*y)/2)/(2*pi))
+}
+```
+
+
+
+3.Tracer de la densité empirique 
+
+
+```{r}
+library(gplots)
+library(plot3D)
+#3
+N<-10000
+vec <- gen_pair_gauss(N)
+Z1 <- vec[1:(N/2)]
+Z2 <- vec[((N/2)+1):N]
+plot(Z1,Z2,xlim=c(-4,4))
+#4
+h2d <- hist2d(cbind(Z1,Z2),nbins=50,show=FALSE)
+persp(h2d$x, h2d$y, h2d$counts,
+          ticktype="detailed", theta=30, phi=30,
+          expand=1, shade=0.5, col="cyan",border="grey",main="densité empirique")
+```
+
+```{r}
+library(plot3D)
+X2<-seq(-5,5,0.1)
+Y2<-seq(-5,5,0.1)
+Graphe2<-c()
+for ( i in -50:50){
+  R<-c()
+  for (j in -50:50){
+    R<-c(R,densite_theo_norm(i/10,j/10))
+  }
+  Graphe2<-cbind(Graphe2,R)
+}
+
+persp3D(x = X2, y =Y2 , z =Graphe2 , clab = c("Densité"),phi=50, theta=50, contour=TRUE, lighting=TRUE, ltheta=45, lphi=60,xlab="x", ylab="y", zlab="densité", main = "Densité théorique")
+
+
+
+```
+
+
+
+5.Simulation d'un echantillon de loi normale centrée réduite 
+
+
+
+```{r}
+#5
+N <- 10000
+X <- gen_pair_gauss(N)[1:(N/2)]
+hist(X,xlim=c(-4,4))
+par(new=TRUE)
+x <- seq(-4, 4, length = N)
+y <- dnorm(x)
+plot(x, y, type = 'l')
+```
+
+
+
+
+6.
+
+```{r}
+plot_norm_2d <- function(sig,mu,N){
+  Z1 <- mu[1] + sig[1]*gen_pair_gauss(N)[1:(N/2)]+sig[2]*gen_pair_gauss(N)[((N/2)+1):N]
+  Z2 <- mu[2] + sig[3]*gen_pair_gauss(N)[1:(N/2)]+sig[4]*gen_pair_gauss(N)[((N/2)+1):N]
+  plot(Z1,Z2)
+  return(cbind(Z1,Z2))
+}
+
+mu = c(2,4)
+N = 10000
+#ro = 0.1
+ro01 <- plot_norm_2d(c(0,2,0,5),mu,N)
+#ro = 0.5
+ro05 <- plot_norm_2d(c(0,2,0,1),mu,N)
+#ro = 0.9
+ro09 <- plot_norm_2d(c(0,1/90,0,0.1),mu,N)
+```
+
+
+```{r}
+h2d <- hist2d(ro01,nbins=50,show=FALSE)
+persp( h2d$x, h2d$y, h2d$counts,
+          ticktype="detailed", theta=30, phi=30,
+          expand=1, shade=0.5, col="cyan",border="grey",main="ro = 0.1")
+
+h2d <- hist2d(ro05,nbins=50,show=FALSE)
+persp( h2d$x, h2d$y, h2d$counts,
+          ticktype="detailed", theta=30, phi=30,
+          expand=1, shade=0.5, col="cyan",border="grey",main="ro = 0.5")
+
+h2d <- hist2d(ro09,nbins=50,show=FALSE)
+persp( h2d$x, h2d$y, h2d$counts,
+          ticktype="detailed", theta=30, phi=30,
+          expand=1, shade=0.5, col="cyan",border="grey",main="ro = 0.9")
+```
+
+
+##Exercice 7
+
+
+Représentation du graphique de la fonction densité :
+
+
+```{r , include = TRUE}
+
+binom <- function ( mu , sigma, x){
+  return((1/(sigma*sqrt((2*pi))))*exp(-0.5*((x-mu)/sigma)^2))
+}
+f <- function (x , p1 , p2){
+  return(p1* binom(-3,1,x)+p2*binom(3,1,x))
+}
+
+
+a<-c(-400:400)/100
+y<-f(a,1/2,1/2)
+plot(a,y,col= "Green",main = "Fonction densité avec p1=p2 = 0.5" ) 
+
+
+a<-c(-400:400)/100
+y<-f(a,1/4,3/4)
+plot(a,y,col= "Darkblue",main = "Fonction densité avec p1=0.25 et p2 = 0.75" )
+
+
+
+a<-c(-400:400)/100
+y<-f(a,3/4,1/4)
+plot(a,y,col= "Red",main = "Fonction densité avec p1=0.75 et p2 = 0.25" ) 
+```
+
+
+Afin de génerer un échantillon suivan t une loi mixte il suffit de générer deux echantillon correspondant aux deux loi normale précisées dans l'énoncé ensuite il suffit de générer un nombre aléatoire entre 0 et 1 si celui-ci est inferieur à p1 on choisit un élément dans l'échantillon 1 qui n'a pas encore été choisi  sinon on fait la même chose mais dans l'échantillon 2 .
+
+
+
+```{r , include = TRUE}
+gaussienne <- function(N){
+  return(sqrt(exponentielle(N,1/2))*cos(runif(N,0,2*pi)))
+} 
+
+sample1<-gaussienne(10000)-3
+sample2<-gaussienne(10000)+3
+
+sample3 <- function(sample1 , sample2 , p1,N){
+  sample <- c()
+  for (i in 1: N){
+  u <- runif(1,0,1)
+  if (u<p1){
+    sample [i] <- sample1 [i]
+    
+  }
+  else sample [i] <- sample2 [i]
+  }
+  return (sample)
+}
+a<-c(-600:600)/100
+y<-f(a,1/2,1/2)
+sample = sample3(sample1,sample2,1/2,10000)
+hist(sample, freq=FALSE, col= "Darkblue",main = "Histogrammes des fréquences avec p1 = p2 =0.5", ylab= "Frequence")
+lines(a,y, col= "Red")
+legend("topright", c("Valeur experimentale des fréquences","Valeur de densité théorique"),
+       fill= c("darkblue", "red"))
+
+
+
+a<-c(-600:600)/100
+y<-f(a,1/4,3/4)
+sample = sample3(sample1,sample2,1/4,10000)
+hist(sample, freq=FALSE,  col= "Darkblue",main = "Histogrammes des fréquences avec p1 = 0.25 et p2 =0.75", ylab= "Frequence")
+lines(a,y, col= "Red")
+legend("topright", c("Valeur experimentale des fréquences","Valeur de densité théorique"),
+       fill= c("darkblue", "red"))
+
+
+a<-c(-600:600)/100
+y<-f(a,3/4,1/4)
+
+sample = sample3(sample1,sample2,3/4,10000)
+hist(sample, freq=FALSE,  col= "Darkblue",main = "Histogrammes des fréquences avec p1 = 0.75 et p2 =0.25", ylab= "Frequence")
+lines(a,y, col= "Red")
+legend("topright", c("Valeur experimentale des fréquences","Valeur de densité théorique"),
+       fill= c("darkblue", "red"))
+```
+
+
+En observant les diagrammes , on remarque que les valeurs des fréquences correspond aux denstités théoriques.
+

@@ -1,0 +1,68 @@
+---
+title: "TP4"
+author: "FARRUGIA"
+date: "19/11/2018"
+output: html_document
+---
+
+```{r}
+setwd("/Users/elise/Desktop/fac/ENSIIE/Semestre3/MAD/TD4/")
+neighbor <- read.table("neighbor_globin.txt",  header=F, row.names = 1)
+
+
+```
+
+2. il y a dissimilirati?? si la matrice est sym??trique (X= t(X))et que la diagonale est ??gale 0 
+a) On v??rifie que  delta(i)=0 pour tous les i
+b) La matrice est symetrique
+```{r}
+diag(as.matrix(neighbor))
+sum((as.matrix(neighbor)-t(as.matrix(neighbor)))^2)
+```
+
+```{r}
+D2 <- as.matrix(neighbor^2)
+J <- diag(1, nrow = nrow(neighbor), ncol = ncol(neighbor))-(1/nrow(neighbor))*matrix(1,nrow = nrow(neighbor), ncol = ncol(neighbor))
+B <- (-1/2)*J%*%D2%*%J
+eigenB <- eigen(B)
+U <- eigenB$vectors
+lambda <- eigenB$values
+UL <- U%*%diag(lambda)
+Decom<-UL%*%t(U)
+sum(B-Decom)
+barplot(lambda)
+#Il y a des valeurs propres n??gatives donc c'??tait pas une matrice de distance, c'est une matrice de dissimilarit?? 
+#The three first eigen value represent the maximum of the information
+```
+
+```{r}
+U13 <- U[,1:3]
+Lambda13 <- lambda[1:3]
+X <- U13%*%diag(Lambda13)^1/2
+```
+```{r}
+library(tidyverse)
+X <- as_tibble(X)
+names(X) <- paste("PC",1:3, sep="")
+ggplot(data=X, aes(x=PC1,y=PC2, label=rownames(neighbor)))+geom_point()+geom_text(check_overlap = T)
+
+```
+
+
+```{r}
+ggplot(data=X, aes(x=PC2,y=PC3, label=rownames(neighbor)))+geom_point()+geom_text(check_overlap = T)
+```
+
+
+
+```{r}
+ggplot(data=X, aes(x=PC1,y=PC3, label=rownames(neighbor)))+geom_point()+geom_text(check_overlap = T)
+```
+
+Pour faire la m??mme chose avec les commandes de R
+```{r}
+res.cmdscale <- cmdscale(neighbor,k=3,x.ret=T)
+X <- as.tibble(res.cmdscale$points)
+names(X) <- paste("PC",1:3, sep="")
+ggplot(data=X, aes(x=PC1,y=PC2, label=rownames(neighbor)))+geom_point()+geom_text(check_overlap = T)
+```

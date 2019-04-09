@@ -1,0 +1,86 @@
+---
+title: "ProjetMAD"
+author: "Zeyu CHEN"
+date: "2018/11/29"
+output: pdf_document
+---
+
+
+# Exercise 1 Simulation
+
+## 1.1 Simulate sample of 1000 vectors from a 2 dimensional mixture with 2 compo-
+nents
+```{r , include=TRUE}
+set.seed(123)
+library(MASS)
+
+v1 <- mvrnorm(500,mu = c(1,2), Sigma=diag(2))
+v2 <- mvrnorm(500,mu = c(1,2), Sigma=4*diag(2))
+
+v <- rbind(v1,v2)
+x <- c(v1,v2)
+```
+  
+
+## 1.2
+```{r , include=TRUE}
+
+plot(v[,1])
+plot(v[,2])
+plot(v)
+```
+## 1.3
+```{r , include=TRUE}
+#TO DO.......
+library(mclust)
+VVI = Mclust(v, modelNames = "VVI")
+plot(VVI,what = c("density"))
+```
+
+# Exercise 2 Simulation
+
+## 1
+```{r , include=TRUE}
+res <- Mclust(v)
+res
+#Mclust function found that there is two class using VEE. It provides us also a
+#lot of available components.
+```
+
+## 2
+```{r , include=TRUE}
+res$parameters
+```
+## 3
+```{r , include=TRUE}
+res$classification
+```
+## 4
+```{r, include = TRUE}
+km <- kmeans(v, centers = 2)
+Mean <- km$centers
+
+Std <- sqrt(km$withinss/km$size)
+
+data.frame(Mean,Std)
+km$withinss
+km$cluster
+```
+# Exercise 3 EM algorithm for a Mixture of balls
+
+
+## 1
+```{r, include = TRUE}
+
+```
+
+## 2
+```{r, include = TRUE}
+
+```
+
+
+## 3
+```{r, include = TRUE}
+
+```

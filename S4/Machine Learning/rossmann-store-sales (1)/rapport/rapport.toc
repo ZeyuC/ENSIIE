@@ -1,0 +1,21 @@
+\contentsline {section}{\numberline {1}Abstract}{3}{section.1}
+\contentsline {section}{\numberline {2}Introduction}{3}{section.2}
+\contentsline {section}{\numberline {3}Data Analysis}{4}{section.3}
+\contentsline {section}{\numberline {4}Data processing}{10}{section.4}
+\contentsline {subsection}{\numberline {4.1}CompetitionDistance}{10}{subsection.4.1}
+\contentsline {subsection}{\numberline {4.2}Promo2}{10}{subsection.4.2}
+\contentsline {subsection}{\numberline {4.3}Store and Sales}{10}{subsection.4.3}
+\contentsline {section}{\numberline {5}\textbf {Methodology}}{11}{section.5}
+\contentsline {subsection}{\numberline {5.1}Linear Model}{11}{subsection.5.1}
+\contentsline {subsection}{\numberline {5.2}\textbf {SVM}}{11}{subsection.5.2}
+\contentsline {subsubsection}{\numberline {5.2.1}Kernels and Type selection:}{11}{subsubsection.5.2.1}
+\contentsline {subsubsection}{\numberline {5.2.2}Parameter Choosing:}{11}{subsubsection.5.2.2}
+\contentsline {subsubsection}{\numberline {5.2.3}Result:}{12}{subsubsection.5.2.3}
+\contentsline {subsection}{\numberline {5.3}Random Forest and H2o}{12}{subsection.5.3}
+\contentsline {subsubsection}{\numberline {5.3.1}Random Forest:}{12}{subsubsection.5.3.1}
+\contentsline {subsubsection}{\numberline {5.3.2}H2o Random Forest:}{13}{subsubsection.5.3.2}
+\contentsline {subsubsection}{\numberline {5.3.3}Parameter Choosing:}{13}{subsubsection.5.3.3}
+\contentsline {subsubsection}{\numberline {5.3.4}Feature Selection:}{13}{subsubsection.5.3.4}
+\contentsline {subsubsection}{\numberline {5.3.5}Result:}{14}{subsubsection.5.3.5}
+\contentsline {section}{\numberline {6}\textbf {Conclusion}}{15}{section.6}
+\contentsline {section}{\numberline {7}\textbf {Reference}}{15}{section.7}

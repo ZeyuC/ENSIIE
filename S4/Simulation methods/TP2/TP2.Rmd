@@ -1,0 +1,232 @@
+---
+title: "TP2"
+author: "Zeyu CHEN"
+date: "2019/2/13"
+output: pdf_document
+---
+###EX5.1
+
+on pose , $Y = \left |X \right|$
+Donc , dx = -dy  quand x < 0 
+et dx = dy quand x > 0
+$$\mathbb{E}_X[h(x)] = \int_{-\infty }^{+\infty} h(x)f_X(x)dx  $$
+
+$$= \int_{-\infty }^{0} h(x)f_X(x)dx +\int_{0 }^{\infty} h(x)f_X(x)dx $$
+$$= \int_{0}^{\infty} h(-x)f_X(-x)d(-x) +\int_{0 }^{\infty} h(x)f_X(x)dx $$
+$$= \int_{0}^{\infty} h(y)f_X(y)d(y) +\int_{0 }^{\infty} h(y)f_X(y)dy $$
+$$ = \int_{0 }^{\infty} h(y)2f_X(y)dy = E_Y[h(y)]$$
+
+Donc 
+ 
+$f_Y(y) = 2f_X(y)\mathbb{I}_{y>0}$
+
+###EX5.2
+On pose h(x) = f(x)/cg(x) , on peut trouver facilement que h(x) < 1 pour tous les x
+
+###EX5.3
+```{r , include=TRUE}
+rexpoentielle <- function(N,lambda)
+{
+  X <- rep(0,N)
+  for(i in 1:N)
+  {
+  u <- runif(1)
+  X[i] <- -log(u)/lambda
+  }
+  return(X)
+}
+
+r_abs_normal <- function(N)
+{
+  pi <- 3.1415926
+  X <- rep(0,N)
+  i <- 1
+  for(i in 1:N)
+  {
+    u <- runif(1)
+    Y <- rexpoentielle(1,1)
+    c <- sqrt(2*exp(1)/pi)
+    fY <- 2/sqrt(2*pi)*exp((-1/2)*Y^2)
+    gY <- exp(-Y)
+    hY <- fY/(c*gY)
+    while(u>hY)
+    {
+      u <- runif(1)
+      Y <- rexpoentielle(1,1)
+      c <- sqrt(2*exp(1)/pi)
+      fY <- 2/sqrt(2*pi)*exp((-1/2)*Y^2)
+      gY <- exp(-Y)
+      hY <- fY/(c*gY)
+    }
+    X[i]=Y
+  }
+  return(X)
+}
+
+r_abs_normal(10)
+```
+###EX5.4
+```{r , include=TRUE}
+X <- r_abs_normal(10000)
+hist(X)
+```
+###EX5.5
+
+
+###EX5.6
+```{r , include=TRUE}
+r_normal <- function(N)
+{
+  X <- rep(0,N)
+  for(i in 1:N)
+  {
+    u <- runif(1)
+    if(u<1/2)
+    {
+      X[i] <-  r_abs_normal(1)
+    }
+    else{
+      X[i] <- -r_abs_normal(1)
+    }
+  }
+  return (X)
+}
+
+X <- r_normal(10000)
+hist(X)
+```
+
+
+###EX6.1
+```{r , include=TRUE}
+r_unif_2dim <- function(N)
+{
+  U <- array(dim = c(N,2))
+  for(i in 1:N)
+  {
+  u1 <- 2*runif(1)-1
+  u2 <- 2*runif(1)-1
+  while(u1^2 + u2^2 >1)
+  {
+  u1 <- 2*runif(1)-1
+  u2 <- 2*runif(1)-1
+  }
+     U[i,1] <- u1
+     U[i,2] <- u2
+  }
+  return(U)
+}
+```
+
+###EX6.2 (Méthode de Box-Muller)
+```{r , include=TRUE}
+X <- r_unif_2dim(10000)
+plot(X)
+```
+
+
+
+###EX7.1
+
+On a $X_1 = \sqrt{R}cos(\Theta)$ et $X_2 = \sqrt{R}sin(\Theta)$
+
+Par consequence , on peut déduire que $R = X_1^2+X_2^2$  et $\Theta = arctan(X_2/X_1)$
+
+On sais que $f_{(X_1,X_2)}(X)=f_{(R,\Theta)}(R,\Theta)*det(J(X))=f_{R}(R)*f_{\Theta}(\Theta)*det(J(X))$
+
+Donc, on dois juste calculer J(X)
+
+$$ J(X)= \begin{pmatrix}
+ \frac{\partial R}{\partial X_1}  & \frac{\partial R}{\partial X_2}\\ \frac{\partial \Theta}{\partial X_1}
+ &\frac{\partial \Theta}{\partial X_2}
+\end{pmatrix} $$ 
+
+$$= \begin{pmatrix}
+ 2X_1  & 2X_2\\ \frac{-X_2}{X_1^2+X_2^2}
+ &\frac{X_1}{X_1^2+X_2^2}
+\end{pmatrix}$$
+
+Alors , $det(J(X)) = \frac{2(X_1^2+X_2^2)}{X_1^2+X_2^2}=2$
+
+Finalement , on a $$f_{(X_1,X_2)}(x) = f_{R}(r)*f_{\Theta}(\theta)*det(J(X)) =  \frac{1}{2\pi}exp(-(x_1^2+x_2^2)/2) = \frac{1}{\sqrt{2\pi}}exp(-x_1^2/2)*\frac{1}{\sqrt{2\pi}}exp(-x_2^2/2)$$
+
+ils sont independentes car $f_{(X_1,X_2)}(x)=f_{X_1}(x_1)f_{X_2}(x_2)$ 
+
+###EX7.2
+```{r , include=TRUE}
+Sigma <- matrix(c(1,0,0,1),2,2)
+r_gaus_2dim <- function(N,sigma = Sigma)
+{
+  R <- rexpoentielle(N,1/2)
+  pi <- 3.1415926
+  Theta <- runif(N,min=0,max = 2*pi)  
+  X1 <- sqrt(R)*cos(Theta)
+  X2 <- sqrt(R)*sin(Theta)
+  
+  Z <- array(data=c(X1,X2),dim=c(N,2))
+  return (Z)
+}
+Z <- r_gaus_2dim(10000)
+plot(Z)
+```
+
+###EX7.3
+```{r , include=TRUE}
+library(MASS)
+library(gplots)
+Sigma <- matrix(c(1,0,0,1),2,2)
+X <- mvrnorm(10000,rep(0,2),Sigma)
+
+h2d <- hist2d(X,nbins=20,show=FALSE)
+persp( h2d$x, h2d$y, h2d$counts,
+          ticktype="detailed", theta=30, phi=0,
+          expand=1, shade=0.5, col="cyan",border="grey",main="densité empirique")
+```
+###EX7.4
+```{r , include=TRUE}
+ N<-10000
+ R <- rexpoentielle(N,1/2)
+ pi <- 3.1415926
+ Theta <- runif(N,min=0,max = 2*pi)  
+ X1 <- sqrt(R)*cos(Theta)
+ 
+ plot(X1)
+ 
+ plot(rnorm(10000,0,1))
+```
+
+###EX7.6
+```{r , include=TRUE}
+Mu <- c(0,0)
+Sigma <- matrix(c(1,0,0,1),2,2)
+r_gaus_2dim <- function(N,mu = Mu,sigma = Sigma)
+{
+  R <- rexpoentielle(N,1/2)
+  pi <- 3.1415926
+  Theta <- runif(N,min=0,max = 2*pi)  
+  X1 <- sqrt(R)*cos(Theta)
+  X2 <- sqrt(R)*sin(Theta)
+  Z1 <- mu[1]+sigma[1,1]*X1+sigma[1,2]*X2
+  Z2 <- mu[2]+sigma[2,1]*X1+sigma[2,2]*X2
+  Z <- array(data=c(Z1,Z2),dim=c(N,2))
+  return (Z)
+}
+
+Sigma <- matrix(c(1,2,0,1),2,2)
+ro <- (Sigma[1,1]*Sigma[2,1]+Sigma[1,2]*Sigma[2,2])/(sqrt(Sigma[1,1]^2+Sigma[1,2]^2)*sqrt(Sigma[2,1]^2+Sigma[2,2]^2))
+
+ro01 <- r_gaus_2dim(10000,sigma=Sigma)
+
+plot(ro01)
+
+h2d <- hist2d(ro01,nbins=50,show=FALSE)
+persp( h2d$x, h2d$y, h2d$counts,
+          ticktype="detailed", theta=30, phi=30,
+          expand=1, shade=0.5, col="cyan",border="grey",main="ro = 0.1")
+```
+
+###EX8.1
+```{r , include=TRUE}
+
+
+```

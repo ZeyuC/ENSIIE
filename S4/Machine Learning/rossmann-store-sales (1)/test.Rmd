@@ -1,0 +1,260 @@
+---
+title: "Test"
+author: "LI _Ziheng"
+date: "2019/3/5"
+output: html_document
+---
+
+```{r , include=TRUE}
+library(mltools)
+library(data.table) 
+```
+
+
+```{r, include=TRUE}
+train <- read.csv(file = 'train.csv', header = TRUE)
+store <- read.csv(file = 'store.csv', header = TRUE)
+```
+
+
+```{r, include=TRUE}
+library(dplyr)
+#left join
+data <- left_join(train, store, by = "Store")
+# remove the attributes: "Customers"
+
+DataSet <-data[data$Sales>0,]
+
+```
+
+```{r}
+#先注释
+#week<- lubridate::week(DataSet$Date)
+month<-lubridate::month(DataSet$Date)
+year<-lubridate::year(DataSet$Date)
+```
+
+```{r}
+#remove the colomn Date, and add year, month, week.
+DataSet = as.data.table(DataSet)
+DataSet[,year:=year]
+DataSet[,month:=month]
+DataSet$Sales = log1p(DataSet$Sales)
+```
+
+```{r,include=FALSE}
+library(randomForest)
+#is.na( DataSet$CompetitionOpenSinceMonth)&is.na( DataSet$CompetitionOpenSinceYear)&is.na( DataSet$CompetitionDistance)
+
+
+#For any store which doesn’t has competitor (competitor==1), we assign CompetitionDistance as a large number 100000. 
+DataSet$CompetitionDistance[is.na( DataSet$CompetitionOpenSinceMonth)&is.na( DataSet$CompetitionOpenSinceYear)&is.na( DataSet$CompetitionDistance)] <- 100000
+
+#Impute miss value for CompetitionOpenSinceMonth and CompetitionOpenSinceYear by "na.roughfix"
+DataSet$CompetitionOpenSinceMonth<-na.roughfix(DataSet$CompetitionOpenSinceMonth)
+DataSet$CompetitionOpenSinceYear<-na.roughfix(DataSet$CompetitionOpenSinceYear)
+
+condition1<-year<DataSet$CompetitionOpenSinceYear
+condition2<-month<DataSet$CompetitionOpenSinceMonth
+DataSet$CompetitionDistance[condition1&condition2] <- 100000
+
+
+#remove  CompetitionOpenSinceMonth and CompetitionOpenSinceYear
+ 
+DataSet <- subset.data.frame(DataSet,select =     -c(CompetitionOpenSinceMonth,CompetitionOpenSinceYear))
+
+```
+
+```{r,include=FALSE,,eval=FALSE}
+#(DataSet$Promo2==1)&is.na(DataSet$Promo2SinceWeek)&is.na(DataSet$Promo2SinceYear)
+#(DataSet$Promo2==1)&is.na(DataSet$PromoInterval)
+
+#Combine Promo2, Promo2SinceWeek, Promo2SinceYear and Promointerval to a promotion 2 indicator in historical sales data. The indicator indicates on a certain day whether a certain store is on promotion 2.
+
+condition3<-year<DataSet$Promo2SinceYear
+condition4<-week<DataSet$Promo2SinceWeek
+condition5<-DataSet$Promo2==1
+#将日期在promo2开始之前的设为0
+#for test sum( DataSet$Promo2[condition3&condition4&condition5])=190000
+DataSet$Promo2[condition3&condition4&condition5]<-0
+#for test sum( DataSet$Promo2[condition3&condition4&condition5])=0
+
+```
+
+
+```{r,include=FALSE}
+#promoInterval 
+in_1_4_7_10<-DataSet$PromoInterval=='Jan,Apr,Jul,Oct'
+in_2_5_8_11<-DataSet$PromoInterval=='Feb,May,Aug,Nov'
+in_3_6_9_12<-DataSet$PromoInterval=='Mar,Jun,Sept,Dec'
+#promo2 is 1, and month in PromoInterval
+DataSet$Promo2[condition5&!(DataSet$month %in% c(1,4,7,10))&in_1_4_7_10]<-0
+DataSet$Promo2[condition5&!(DataSet$month %in% c(2,5,8,11))&in_2_5_8_11]<-0
+DataSet$Promo2[condition5&!(DataSet$month %in% c(3,6,9,12))&in_3_6_9_12]<-0
+DataSet
+```
+
+```{r, include=FALSE}
+
+#remove Store, week, Promo2Sinceweek   Promo2Since year   PromoInterval
+#DataSet <- DataSet[,-c(1,5,14,15,16)]
+
+
+#remove  Promo2Sinceweek   Promo2Since year   PromoInterval
+
+DataSet <- subset.data.frame(DataSet,select =-c(Promo2SinceWeek,Promo2SinceYear,PromoInterval))
+
+#DataSet <- na.omit(DataSet)
+
+```
+
+
+
+
+```{r, include=TRUE}
+#library(data.table)
+#library(mltools)
+#We dont need to one hot cause it will decrease the performance of RandomF
+#DataSet$DayOfWeek <- as.factor(DataSet$DayOfWeek)
+#DataSet$year <- as.factor(DataSet$year)
+##DataSet$month <- as.factor(DataSet$month)
+#DataSet <- one_hot(as.data.table(DataSet))
+```
+
+
+```{r, include=TRUE}
+library(h2o)
+library(MLmetrics)
+NewTrain <-DataSet
+
+h2o.init(nthreads=-1,max_mem_size='6G')
+
+NewTrainHex <- as.h2o(NewTrain)
+
+f <- colnames(subset.data.frame(DataSet,select = -c(Date,Sales,Customers)))
+
+RF33 <- h2o.randomForest(x=f,y="Sales",
+                           training_frame = NewTrainHex,
+                           ntrees = 100,
+                           nbins_cats = 1115,
+                           max_depth = 30)
+```
+
+
+###test data
+```{r}
+test <- read.csv(file = 'test.csv', header = TRUE)
+data_test <- left_join(test, store, by = "Store")
+
+#delete Id 
+DataSet_test <- data_test[,-c(1)]
+
+
+year_Test<-lubridate::year(DataSet_test$Date)
+#week_Test<-lubridate::week(DataSet_test$Date)
+month_Test<-lubridate::month(DataSet_test$Date)
+
+DataSet_test = as.data.table(DataSet_test)
+#DataSet_test<-cbind(DataSet_test[,1:2],year_Test,month_Test,DataSet_test[,4:ncol(DataSet_test)])
+DataSet_test[,year:=year_Test]
+DataSet_test[,month:=month_Test]
+
+
+
+#remove the colomn Date, and we add year, month, week
+
+#DataSet_test<-cbind(DataSet_test[,1:2],year_Test,month_Test,DataSet_test[,4:ncol(DataSet_test)])
+
+
+#names(DataSet_test)[3] <- "year"
+#names(DataSet_test)[4] <- "month"
+```
+
+```{r,include=FALSE}
+#先注释
+library(randomForest)
+#is.na( DataSet$CompetitionOpenSinceMonth)&is.na( DataSet$CompetitionOpenSinceYear)&is.na( DataSet$CompetitionDistance)
+
+#For any store which doesn’t has competitor (competitor==1), we assign CompetitionDistance as a large number 100000. 
+DataSet_test$CompetitionDistance[is.na(DataSet_test$CompetitionOpenSinceMonth)&is.na(DataSet_test$CompetitionOpenSinceYear)&is.na( DataSet_test$CompetitionDistance)] <- 100000
+
+#Impute miss value for CompetitionOpenSinceMonth and CompetitionOpenSinceYear by "na.roughfix"
+DataSet_test$CompetitionOpenSinceMonth<-na.roughfix(DataSet_test$CompetitionOpenSinceMonth)
+DataSet_test$CompetitionOpenSinceYear<-na.roughfix(DataSet_test$CompetitionOpenSinceYear)
+
+condition1<-year_Test<DataSet_test$CompetitionOpenSinceYear
+condition2<-month_Test<DataSet_test$CompetitionOpenSinceMonth
+DataSet_test$CompetitionDistance[condition1&condition2] <- 100000
+
+
+#remove  CompetitionOpenSinceMonth and CompetitionOpenSinceYear
+
+
+DataSet_test <- subset.data.frame(DataSet_test,select =     -c(CompetitionOpenSinceMonth,CompetitionOpenSinceYear))
+
+
+#(DataSet$Promo2==1)&is.na(DataSet$Promo2SinceWeek)&is.na(DataSet$Promo2SinceYear)
+#(DataSet$Promo2==1)&is.na(DataSet$PromoInterval)
+
+#Combine Promo2, Promo2SinceWeek, Promo2SinceYear and Promointerval to a promotion 2 indicator in historical sales data. The indicator indicates on a certain day whether a certain store is on promotion 2.
+
+condition3<-year_Test<DataSet_test$Promo2SinceYear
+condition4<-week_Test<DataSet_test$Promo2SinceWeek
+condition5<-DataSet_test$Promo2==1
+#将日期在promo2开始之前的设为0
+#for test sum( DataSet$Promo2[condition3&condition4&condition5])=190000
+DataSet_test$Promo2[condition3&condition4&condition5]<-0
+#for test sum( DataSet$Promo2[condition3&condition4&condition5])=0
+
+
+#promoInterval 
+in_1_4_7_10<-DataSet_test$PromoInterval=='Jan,Apr,Jul,Oct'
+in_2_5_8_11<-DataSet_test$PromoInterval=='Feb,May,Aug,Nov'
+in_3_6_9_12<-DataSet_test$PromoInterval=='Mar,Jun,Sept,Dec'
+#promo2 is 1, and month in PromoInterval
+DataSet_test$Promo2[condition5&!(DataSet_test$month_Test %in% c(1,4,7,10))&in_1_4_7_10]<-0
+DataSet_test$Promo2[condition5&!(DataSet_test$month_Test %in% c(2,5,8,11))&in_2_5_8_11]<-0
+DataSet_test$Promo2[condition5&!(DataSet_test$month_Test %in% c(3,6,9,12))&in_3_6_9_12]<-0
+
+
+#remove  Promo2Sinceweek   Promo2Since year   PromoInterval
+
+
+DataSet_test <- subset.data.frame(DataSet_test,select =     -c(Promo2SinceWeek,Promo2SinceYear,PromoInterval))
+
+
+
+
+
+
+```
+
+
+
+```{r,include=TRUE}
+
+DataSet_test_Test = DataSet_test
+
+
+DataSet_test_TestHex <- as.h2o(DataSet_test_Test)
+pred<-as.data.frame(h2o.predict(RF33,DataSet_test_TestHex)) 
+
+pred[which(data_test$Open!=1),] <- 0
+
+pred <- expm1(pred[,1])
+#pred<-na.roughfix(pred)
+#pred<-as.data.frame(cbind(seq(1,length(pred),1),pred))
+
+pred <- data.frame(Id=data_test$Id,Sales=pred)
+
+
+write.csv(pred,file = "res.csv",row.names=F)
+
+```
+
+
+
+```{r, include=TRUE}
+lubridate::year(DataSet_test$Date)
+
+```

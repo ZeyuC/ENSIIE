@@ -1,0 +1,368 @@
+---
+title: "TP1_MRRR"
+author: "Zeyu CHEN"
+date: "2018/9/17"
+output: pdf_document
+---
+# Some preliminary exercices using R
+### 1
+```{r , include=TRUE}
+    options(digits=15)
+
+    vecExp2 <- 0:19 
+    
+    vecExp2 <- 2**vecExp2/factorial(vecExp2)
+    
+    ifelse(vecExp2 > 10e-8,vecExp2,NaN)
+    exp2 <- sum(vecExp2)
+    exp2Fun <- exp(2)
+    exp2
+    exp2Fun
+```
+
+### 2
+```{r , include=TRUE}
+  X <- rnorm(100,2,1)
+  Y<- X*9.8  
+  Y<- Y + rnorm(100,0,1/10)
+```
+
+### 3
+```{r , include=TRUE}
+  dfxy <- data.frame(X,Y)
+  write.table(dfxy,"WXY")
+  
+  rXY <- read.table("WXY")
+  rXY-dfxy
+  #tous les valeur sont changés un peu
+```
+
+### 4
+```{r , include=TRUE}
+
+  dfxy <- data.frame(X,Y)
+  save(dfxy,file = "xy.RData")
+  pdfxy <- dfxy
+  rm(dfxy)
+  load("xy.RData")
+  pdfxy - dfxy
+#tous les valeur ne sont pas changés
+```
+
+### 5
+
+```{r , include=TRUE}
+    library(ggplot2)
+    p <- plot(X,Y)
+    ggplot(dfxy, aes(X, Y)) + geom_point()
+```
+
+### 6
+```{r , include=TRUE}
+  hist(X)
+  hist(X, breaks = 6)
+```
+
+
+# 1. Ordinary Least Square (OLS)
+
+## Priliminary work
+```{r , include=TRUE}
+  tab <- read.table("TP1/data/immo.txt",sep = ";",header = TRUE)
+  tab
+  head(tab)
+  tail(tab)
+  
+  #take the nom of all of colums
+  names(tab)
+  
+  #take the first colums
+  #tab[,1]
+  
+  #take the  colums 'surface'
+  #tab$surface
+  
+  #take the first and third colum 
+  #tab[,c(1,3)]
+  
+  #tab$prix
+  
+  #nrow(tab)
+
+  #dim(tab)
+  
+ # plot(tab)
+  cor(tab)
+```
+## Fisrt model using Ordinary Least Square
+
+### a)
+```{r , include=TRUE}
+    c1 = rep(1,20)
+    tab <- read.table("TP1/data/immo.txt",sep = ";",header = TRUE)
+    tab=data.frame(c1,tab)
+
+    X <- as.matrix(tab[,c(1,2,3)])
+    Y <- as.matrix(tab[,4])
+   
+    
+    belta <- solve(t(X)%*%X)%*%t(X)%*%Y
+  
+    belta
+    #beta0 <- belta[1,1]
+    #beta1 <- belta[2,1]
+    #beta2 <- belta[3,1]
+
+    #beta0+144.8*beta1+602*beta2
+             
+```
+
+### b)
+```{r , include=TRUE}
+tab <- read.table("TP1/data/immo.txt",sep = ";",header = TRUE)
+  modreg = lm(prix~.,data=tab)
+  #modreg
+  
+ # print(modreg)
+  
+  #summary(modreg)
+  
+  modreg$res
+  
+  tab
+  
+  modreg$model
+  
+  help(lm)
+  
+```
+### c)
+```{r , include=TRUE}
+
+YReal <- tab$prix
+YRes  <- modreg$fitted.values
+plot(YReal,YRes)
+grid(col = "red")
+abline(a = 1, b = 1,col = 2)
+# The points above the red stright line represent the value being over estimated . 
+# The points below the red stright line represent the value being under estimated
+
+plot(YReal-YRes)
+abline(h = 0, col = 2)
+# This is another way to observe values that are underestimated or overestimated.
+```
+
+
+### d)
+```{r , include=TRUE}
+#in statistics, the coefficient of determination, denoted R2 or r2 and pronounced "R squared", is the proportion of the variance in the dependent variable that is predictable from the independent variable(s).
+YReal <- tab$prix
+YRes  <- modreg$fitted.values
+
+YMean <- sum(YReal)/length(YReal)
+
+SSres <- sum((YRes-YReal)^2)
+SSreg <- sum((YRes-YMean)^2)
+SStot <- sum((YReal-YMean)^2)
+ 
+R2 <- SSreg/SStot
+R2
+R2_ <- 1 - SSres/SStot
+R2_
+```
+
+### e)
+```{r , include=TRUE}
+#reference a)
+```
+
+# 2. The linear model
+
+### a)
+```{r , include=TRUE}
+tab <- read.table("TP1/data/Icecreamdata.txt", header = TRUE, sep = ";")
+nrow(tab)
+dim(tab)
+```
+
+$$Y = \beta_0+\sum_{i=1}^3\beta_iX_i$$
+
+### b)
+
+The consumption is proportional to the income and temps with the similar coefficients, but  it is inversely proportional to the price with a large coefficient.
+```{r  , include= TRUE}
+modIce <- lm(cons~.,tab)
+```
+
+## output Model :
+```{r  , include= TRUE}
+modIce
+```
+
+## table anova :
+```{r  , include= TRUE}
+anova(modIce)
+```
+
+```{r  , include= TRUE}
+X <-  as.matrix(cbind(rep(1,nrow(tab)),tab[,c(2,3,4)]))
+Y <-  as.matrix(tab[,1])
+```
+
+## d'apres le cours ,on sais $\beta=(X^tX)^{-1}X^tY$ 
+```{r  , include= TRUE}
+beta <- solve(t(X)%*%X)%*%t(X)%*%Y
+```
+
+#compute $\beta=(X^tX)^{-1}$ 
+```{r  , include= TRUE}
+Sjj<- solve(t(X)%*%X)
+```
+
+#d'apres le cours page 89 of pdf 
+```{r  , include= TRUE}
+tValue <- vector(length = 4)
+for(i in 1:4)
+{
+  tValue[i] <- beta[i]/sqrt(0.001357 * Sjj[i,i])
+}
+
+interval95 <-  qt(1-0.05/2,26)
+#interval95
+
+pValue <- vector(length = 4)
+for(i in 1:4)
+{
+  pValue[i] <- 2* pt(abs(tValue[i]),df = df.residual(modIce),lower.tail = FALSE)
+}
+
+tValue <- data.frame(tValue,pValue,row.names = c("b0","b1","b2","b3"))
+#tValue
+
+#summary(modIce)
+confint(modIce,level = 0.95)
+```
+
+
+### c)
+
+```{r  , include= TRUE}
+#1
+modregIce <- lm(cons~.,data=tab)
+plot(modregIce$fitted.values)
+plot(modregIce$model)
+
+#2
+predict(modregIce,interval = "confidence")
+```
+
+### d)
+$$RMSD = \sqrt{ \frac{\sum_{t=1}^T(\widehat{y_t}-y_t)^2}{T}} $$
+```{r  , include= TRUE}
+#1
+ sumOfSq <- sum(modregIce$residuals^2)
+ T <- length(modregIce$residuals)
+ RMSD <-  sqrt(sumOfSq/T)
+ RMSD
+#2
+ plot(modregIce$residuals)
+#3
+ qqnorm(modregIce$residuals)
+ qqline(modregIce$residuals,col=2,lwd=2)
+#4
+ shapiro.test(modregIce$residuals)
+#p-value = 0.1195 , so , we can't reject null hypothesis which claim that the data came from a normally distributed population
+```
+### e)
+```{r  , include= TRUE}
+newdata <- data.frame(income=85,price=0.28,temp=50)
+predict(modregIce,newdata = newdata,interval = "confidence")
+```
+### f)
+### Random Partitionning
+```{r  , include= TRUE}
+RMSD <- vector(length = 10)
+RMSDtest <- vector(length = 10)
+#Repeat
+for(i in 1:10)
+{
+# partitionning
+sub <- sample(nrow(tab), 0.75 * nrow(tab))
+
+TabTrain <- tab[sub,]
+
+
+TabTest <- tab[-sub,]
+
+
+# predict with Test data set
+modIceTr <- lm(cons~.,data = TabTrain)
+modIceTr
+# root mean square deviation 
+
+sumOfSq <- sum((TabTrain$cons - predict(modIceTr,newdata = TabTrain))^2)
+T <- length(TabTrain$cons)
+RMSD[i] <-  sqrt(sumOfSq/T)
+
+
+predict(modIceTr,newdata = TabTest)
+TabTest$cons
+
+# root mean square deviation of test data
+sumSqtest <- sum((TabTest$cons - predict(modIceTr,newdata = TabTest))^2)
+Ttest <- length(TabTest$cons)
+RMSDtest[i] <-  sqrt(sumSqtest/Ttest)
+}
+
+boxplot(RMSD,main ="RMSD")
+boxplot(RMSDtest,main ="RMSDtest")
+# root mean square deviation of test data always lager than root mean square deviation 
+```
+
+# 3. Curse of high dimension
+```{r  , include= TRUE}
+# a
+tab <- read.table("TP1/data/Icecreamdata.txt", header = TRUE, sep = ";")
+newVar <- rnorm(30,0,1)
+tab <- data.frame(tab,newVar)
+
+modHighDim <- lm(cons~.,data = tab)
+modHighDim
+summary(modHighDim)["r.squared"]$r.squared
+sumOfSq <- sum(modHighDim$residuals^2)
+T <- length(modHighDim$residuals)
+T
+# root mean square deviation 
+RMSD <-  sqrt(sumOfSq/T)
+RMSD
+
+
+
+```
+
+```{r  , include= TRUE}
+# b
+tab <- read.table("TP1/data/Icecreamdata.txt", header = TRUE, sep = ";")
+RMSDHDim <- vector(length = 20)
+R2HDim <- vector(length = 20)
+R2adjHDim <- vector(length = 20)
+for(k in 1:20)
+{
+newVar <- rnorm(30,0,1)
+tab <- data.frame(tab,newVar)
+modHighDim <- lm(cons~.,data = tab)
+modHighDim
+
+sumOfSq <- sum(modHighDim$residuals^2)
+T <- length(modHighDim$residuals)
+# root mean square deviation 
+RMSDHDim[k] <-  sqrt(sumOfSq/T)
+R2HDim[k] <-  summary(modHighDim)["r.squared"]$r.squared
+R2adjHDim[k] <- summary(modHighDim)["adj.r.squared"]$adj.r.squared
+}
+data.frame(RMSDHDim)  
+
+data.frame(R2HDim)
+
+data.frame(R2adjHDim)
+```

@@ -1,0 +1,300 @@
+---
+title: "TP3 MRR Zeyu CHEN & Clément VEYSSIÈRE"
+author: "Zeyu Chen, Clément Veyssière"
+date: "11 novembre 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Boston Housing dataset
+```{r, include = TRUE}
+set.seed(100)
+#First, we get the data and replace medv by the binary variable medvBin
+library(mlbench)
+data(BostonHousing)
+tab = BostonHousing
+medvBin = as.factor(as.numeric(tab$medv > median(tab$medv)))
+tab = cbind(tab[,1:13],medvBin)
+```
+
+```{r, include = TRUE}
+res = glm(medvBin ~ ., family = binomial, data = tab)
+summary(res)
+```
+
+```{r, include = TRUE}
+attributes(res)
+res$coefficients
+#the most significant coefficient seems to be the one of the nox (highest absolute value)
+#the less significant coefficient seems to be the one of the b (lowest absolute value)
+```
+
+```{r, include = TRUE}
+pYres = predict.glm(res, type = "response")
+pYlink = predict.glm(res, type= "response")
+summary(pYres)
+plot(pYres)
+```
+
+```{r, include = TRUE}
+library(MASS)
+exp(coef(res)) #odds-ratio
+```
+
+```{r, include = TRUE}
+coeff = tab[,1:13]
+Prob = c(1:506)
+coeff = cbind(Intercept = 1, coeff)
+for (i in 1:506){
+  Prob[i] = (exp(t(coef(res))%*%as.numeric(coeff[i,])))/(1+exp(t(coef(res))%*%as.numeric(coeff[i,])))
+}
+Prob = as.numeric(Prob >= 0.5)
+```
+
+```{r, include = TRUE}
+#compute confusion matrix and False positive/negative rates
+confusion = table(Prob,medvBin)
+FP.Rate = confusion[2,1]/(confusion[2,1]+confusion[1,1])
+FN.Rate = confusion[1,2]/(confusion[1,2]+confusion[2,2])
+print(confusion)
+cat("False positive rate =", FP.Rate, "\n" )
+cat("False negative rate =", FN.Rate, "\n" )
+```
+
+
+###K folds
+```{r, include = TRUE}
+
+kfold <- function(k)
+{
+  performance <- vector(length = k)
+  #Create 10 equally size folds
+  folds <- cut(seq(1,nrow(tab)),breaks=k,labels=FALSE)
+
+  #Perform 10 fold cross validation
+  for(i in 1:k){
+    #Split data by fold using the which() function 
+    
+    testIndexes <- which(folds==i,arr.ind=TRUE)
+    testData <- tab[testIndexes,]
+    trainData <- tab[-testIndexes,]
+    
+    #Use the test and train data partitions
+    res <- glm(medvBin ~ .,family = binomial,data = trainData)
+    testData$medvBin = NULL
+    
+    xNew <- cbind(1,testData)
+    for (j in 1:14){
+      xNew[,j] = as.numeric(xNew[,j])
+    }
+    
+    nChap <- 1/(1+exp(- (as.matrix(xNew))%*%as.numeric(res$coefficients)))#erreur ici
+    yChap<- as.numeric(nChap>0.5)
+    t <- table(yChap,y=tab[testIndexes,]$medvBin)
+    if(sum(yChap)/length(yChap) == 1){
+      st = t[1,2]
+    }
+    else if (sum(yChap) == 0){
+      st = t[1,1]
+    }
+    else{
+      st = t[1,1] + t[2,2]
+    }
+    performance[i]<-(st)/nrow(testData)
+  }
+  boxplot(performance,ylim=c(0.5,1))
+}
+par(mfrow=c(1,2))
+kfold(10)
+kfold(5)
+```
+The plot on the left represents the result of the K-fold procedure for K=10 while the one on the right is for K=5
+
+###ROC curve
+```{r, include = TRUE}
+library(ROCR)
+
+prelink <- predict.glm(res,newdata = tab,type = "link")
+pre <- prediction(prelink,tab$medvBin)
+
+#threshold varie de 1 à 0
+plot(performance(pre,"tpr","fpr"))
+abline(0,1)
+```
+
+## Model selection
+###1. Statistical approach: forward, backward, stepwise selection
+####a)
+```{r, include = FALSE}
+#Forward logistic regression
+resall = glm(medvBin ~ ., data = tab, family = binomial)
+res0 = glm(medvBin ~ 1, data = tab, family = binomial)
+resfor = step(res0, list(upper=resall), direction="forward")
+```
+```{r, include = TRUE}
+print(resfor)
+```
+```{r, include = FALSE}
+#Backward logistic regression
+resback = step(res, direction = "backward")
+```
+```{r, include = TRUE}
+print(resback)
+```
+```{r, include = FALSE}
+#Stepwise logistic regression
+resstep = step(res, direction = "both")
+```
+```{r, include = TRUE}
+print(resstep)
+```
+
+```{r, include = TRUE}
+formula(resfor)
+```
+
+####b)
+```{r, include = TRUE }
+prelink = predict.glm(resfor, newdata = tab, type = "link")
+pre = prediction(prelink, tab$medvBin)
+pre2 = prediction(pYlink, tab$medvBin)
+plot(performance(pre,"tpr","fpr"), col = "red")
+par(new = TRUE)
+plot(performance(pre2,"tpr","fpr"), col = "blue")
+abline(0,1)
+#The two curves are very similar
+```
+
+###2. Logistic regression with l1 or l2 penalizations
+```{r, include = TRUE}
+medvBin <- as.numeric(BostonHousing$medv>median(BostonHousing$medv))
+BostonHousing$medv <- medvBin
+
+# partitionning 
+sub <- sample(nrow(BostonHousing), 0.8 * nrow(BostonHousing))
+tabTrain <- BostonHousing[sub,]
+tabTest <- BostonHousing[-sub,]
+xtrain = data.matrix(tabTrain[,1:13])
+ytrain = as.factor(tabTrain$medv)
+xtest = data.matrix(tabTest[,1:13])
+ytest = as.factor(tabTest$medv)
+```
+####a)Ridge Regression
+```{r, include = TRUE}
+library(glmnet)
+ridge = glmnet(xtrain,ytrain,alpha=0,family = "binomial")
+summary(ridge)
+```
+```{r, include = TRUE}
+#10-folds cross-validation with ridge model
+cv_ridge = cv.glmnet(xtrain, ytrain, family = "binomial", nfolds = 10, alpha = 0)
+plot(cv_ridge)
+```
+
+```{r, include = TRUE}
+lambda.min = cv_ridge$lambda.min
+lambda.1se = cv_ridge$lambda.1se
+#we get the two models ridge.1se and ridge.min using respectively lambda.1se and lambda.min
+ridge.1se = glmnet(xtrain, ytrain, alpha = 0, family = "binomial", lambda = lambda.1se)
+ridge.min = glmnet(xtrain, ytrain, alpha = 0, family = "binomial", lambda = lambda.min)
+```
+
+```{r, include = TRUE}
+#we predict the target value of the test dataset using both models
+y_pred.1se = predict(ridge.1se, newx = xtest, type = "response")
+y_pred.min = predict(ridge.min, newx = xtest, type = "response")
+y_pred.1se[y_pred.1se >= 0.5] = 1
+y_pred.1se[y_pred.1se != 1] = 0
+y_pred.min[y_pred.min >= 0.5] = 1
+y_pred.min[y_pred.min != 1] = 0
+#we get the confusion matrix for each model
+confusion.1se = table(y_pred.1se,ytest)
+print(confusion.1se)
+FP.Rate.1se = confusion.1se[2,1]/(confusion.1se[2,1]+confusion.1se[1,1])
+FN.Rate.1se = confusion.1se[1,2]/(confusion.1se[1,2]+confusion.1se[2,2])
+cat("False positive rate =", FP.Rate.1se, "\n" )
+cat("False negative rate =", FN.Rate.1se, "\n" )
+confusion.min = table(y_pred.min,ytest)
+print(confusion.min)
+FP.Rate.min = confusion.min[2,1]/(confusion.min[2,1]+confusion.min[1,1])
+FN.Rate.min = confusion.min[1,2]/(confusion.min[1,2]+confusion.min[2,2])
+cat("False positive rate =", FP.Rate.min, "\n" )
+cat("False negative rate =", FN.Rate.min, "\n" )
+ytest = as.numeric(ytest)-1
+plot(1:102,y_pred.min, col = "red", ylim = c(0,1), ylab = "testetsttst", main = "predicted values using lambda.min ")
+par(new = TRUE)
+plot(1:102,ytest, col = "blue", ylim = c(0,1), ylab = "testetsttst")
+plot(1:102,y_pred.1se, col = "red", ylim = c(0,1), ylab = "testetsttst", main = "predicted values using lambda.1se ")
+par(new=TRUE)
+plot(1:102,ytest, col = "blue", ylim = c(0,1), ylab = "testetsttst")
+```
+The red point correspond to the actual values that weren't correctly predicted.
+We can notice that both lambda gave quite similar predictions for this test with a slight advantage for the model using lambda.min.
+The false positive rate is about 3 times lower than with the first method. So, this is a much better approach.
+
+####b) Lasso regression
+```{r, include = TRUE}
+# partitionning 
+sub <- sample(nrow(BostonHousing), 0.65 * nrow(BostonHousing))
+tabTrain <- BostonHousing[sub,]
+tabTest <- BostonHousing[-sub,]
+
+#drop the medv and transforme to matrix
+X <- data.matrix(subset(tabTrain,select= -medv))
+
+
+#Using lasso regression with alpha = 1
+glmmod <- glmnet(X,as.factor(tabTrain$medv),alpha = 1,family="binomial")
+plot(glmmod)
+#We can find the samller L1 norm is , the more coef are equal to 0
+
+#Using lasso regression through 10-fold with type.measure="class"
+modLassoC<- cv.glmnet(X,tabTrain$medv,family="binomial",type.measure="class",alpha=1)
+plot(modLassoC,main="class measure")
+#Using lasso regression through 10-fold with type.measure="auc"
+modLassoA<- cv.glmnet(X,tabTrain$medv,family="binomial",type.measure="auc",alpha=1)
+plot(modLassoA,main="auc measure")
+
+#Using lasso regression through 10-fold with type.measure="mae"
+modLassoM<- cv.glmnet(X,tabTrain$medv,family="binomial",type.measure="mae",alpha=1)
+plot(modLassoM,main="mae measure")
+
+
+lambda.min<-vector(length = 3)
+lambda.1se<-vector(length = 3)
+newx <- data.matrix(subset(tabTest,select=-medv))
+#Predicting with ="modLassoC" and with "s=modLassoC$lambda.min"
+preMin<- predict(modLassoC,newx =newx,s=modLassoC$lambda.min,type = "response")
+lambda.min[1] <- sum((as.numeric(preMin>0.5)-tabTest$medv)^2)
+
+#Predicting with ="modLassoC" and with "s=modLassoC$lambda.1se"
+pre1se<- predict(modLassoC,newx =newx,s=modLassoC$lambda.1se,type = "response")
+lambda.1se[1] <- sum((as.numeric(pre1se>0.5)-tabTest$medv)^2)
+
+#Predicting with ="modLassoA" and with "s=modLassoA$lambda.min"
+preMin<- predict(modLassoA,newx =newx,s=modLassoA$lambda.min,type = "response")
+lambda.min[2] <- sum((as.numeric(preMin>0.5)-tabTest$medv)^2)
+
+#Predicting with ="modLassoA" and with "s=modLassoA$lambda.1se"
+pre1se<- predict(modLassoA,newx =newx,s=modLassoA$lambda.1se,type = "response")
+lambda.1se[2] <- sum((as.numeric(pre1se>0.5)-tabTest$medv)^2)
+
+#Predicting with ="modLassoM" and with "s=modLassoM$lambda.min"
+preMin<- predict(modLassoM,newx =newx,s=modLassoM$lambda.min,type = "response")
+lambda.min[3] <- sum((as.numeric(preMin>0.5)-tabTest$medv)^2)
+
+#Predicting with ="modLassoM" and with "s=modLassoM$lambda.1se"
+pre1se<- predict(modLassoM,newx =newx,s=modLassoM$lambda.1se,type = "response")
+lambda.1se[3] <- sum((as.numeric(pre1se>0.5)-tabTest$medv)^2)
+
+
+data.frame(lambda.min,lambda.1se,row.names = c("Class wrong times ","Auc wrong times ",
+                                               "Mae wrong times "))
+# We can find that the performance of Mae methods is quite good. And the performence using
+# lambda.min is better than using lambda.1se.
+```
+
+

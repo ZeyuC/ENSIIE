@@ -1,0 +1,17 @@
+\select@language {french}
+\contentsline {part}{Pr\IeC {\'e}ambule}{1}{section*.1}
+\contentsline {paragraph}{\relax \fontsize {24.88}{30}\selectfont {Pr\IeC {\'e}ambule}}{2}{section*.2}
+\contentsline {paragraph}{}{2}{section*.3}
+\contentsline {section}{\numberline {1}EDP compl\IeC {\`e}te}{3}{section.1}
+\contentsline {subsection}{\numberline {1.1}Discr\IeC {\'e}tisation de l\IeC {\textquoteright }espace-temps}{3}{subsection.1.1}
+\contentsline {subsection}{\numberline {1.2}Discr\IeC {\'e}tisation des d\IeC {\'e}riv\IeC {\'e}es partielles}{3}{subsection.1.2}
+\contentsline {subsection}{\numberline {1.3}R\IeC {\'e}sourde le problem sous la forme de la matrice}{3}{subsection.1.3}
+\contentsline {subsection}{\numberline {1.4}L'impl\IeC {\'e}mentation de la m\IeC {\'e}thode en C++}{5}{subsection.1.4}
+\contentsline {section}{\numberline {2}Diff\IeC {\'e}rence finie implicite}{5}{section.2}
+\contentsline {subsection}{\numberline {2.1}Transformer l'\IeC {\'e}quation de Black-Scholes en une equation de chaleur}{5}{subsection.2.1}
+\contentsline {subsubsection}{\numberline {2.1.1}Premi\IeC {\`e}re \IeC {\'e}tape}{5}{subsubsection.2.1.1}
+\contentsline {subsubsection}{\numberline {2.1.2}Deuxi\IeC {\`e}me \IeC {\'e}tape}{6}{subsubsection.2.1.2}
+\contentsline {subsubsection}{\numberline {2.1.3}Troisi\IeC {\`e}me \IeC {\'e}tape}{6}{subsubsection.2.1.3}
+\contentsline {subsection}{\numberline {2.2}L'impl\IeC {\'e}mentation de la m\IeC {\'e}thode des diff\IeC {\'e}rences finies implicite}{6}{subsection.2.2}
+\contentsline {subsubsection}{\numberline {2.2.1}Documentation}{6}{subsubsection.2.2.1}
+\contentsline {section}{\numberline {3}Affichage des courbes}{8}{section.3}

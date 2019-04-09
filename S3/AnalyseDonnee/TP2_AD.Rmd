@@ -1,0 +1,171 @@
+---
+title: "TP2"
+author: "Zeyu CHEN"
+date: "2018/11/12"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# EX1 Coding PCA
+
+## 1 Code your own PCA, frome a dataframe X, your funcion will produce
+```{r , include=TRUE}
+#1 centrer les donnees 
+PAC <- function(X,K = 2)
+{
+    X <- scale(X,center = T,scale = F)
+    p <- dim(X)[2]
+    n <- nrow(X)
+    S <- var(X)*(n-1)/n #var(X) est sans biais (english : bias)
+    #ou t(X)%*%(X)/n
+    U <- eigen(S)$vectors
+    Lamabda <- eigen(S)$values
+    
+    C <- X %*% U
+    plot(C[,1],C[,3])
+
+    #Si byrow=TRUE, la matrice est remplie par ligne. Si byrow=FALSE, la matrice est remplie     #par colonne
+    D <- U %*%matrix(sqrt(Lamabda),p,p,byrow = TRUE)
+    return(D)
+}
+
+
+matrix(rep(0, 4*6), nrow = 6 )
+  
+```
+# 设定高斯分布的个数，准备空矩阵
+```{r , include=TRUE}
+# 生成n=5000的样本samp
+set.seed(637351)
+n <- 5000
+
+# 权重0.4，高斯参数N(3，1)
+alpha1 <- 0.4
+miu1   <- 3
+sigma1 <- 1
+
+# 权重0.6，高斯参数N(-2，4)
+alpha2 <- 0.6
+miu2   <- -2
+sigma2 <- 2
+
+n1 <- floor(n*alpha1)
+n2 <- n-n1
+
+samp <-numeric(n)
+samp[1:n1] <- rnorm(n1, miu1, sigma1)
+samp[(n1+1):n] <- rnorm(n2, miu2, sigma2)
+
+# 高斯混合模型的密度函数图
+hist(samp, freq = FALSE)
+lines(density(samp), col = 'red')
+
+
+k <- 2
+prob <- matrix(rep(0, k*n), nrow = n)
+weight <- matrix(rep(0, k*n), nrow = n)
+
+# 初始权重alpha平均分配，高斯参数miu、sigma由均匀分布随机产生
+alpha <- c(0.5, 0.5)
+miu   <- runif(k)
+
+sigma <- runif(k)
+for (j in 1:k) {
+    prob[, j]   <- sapply(samp, dnorm, miu[j], sigma[j])
+    weight[, j] <- alpha[j] * prob[, j]
+  }
+  row_sum <- rowSums(weight)
+  prob    <- weight/row_sum
+prob
+
+```
+
+```{r , include=TRUE}
+library(factoextra)
+library(FactoMineR)
+data <- data.frame( row.names = c("jean", "aline","annie", "monique", "didier", "andre", "pierre", "brigitte", "evelyne"),
+math = c(6.0, 8.0, 6.0, 14.5, 14, 11, 5.5, 13, 9),
+scie = c(6, 8, 7, 14.5, 14, 10, 7, 12.5, 9.5),
+fran = c(5, 8, 11, 15.5, 12, 5.5, 14, 8.5, 12.5),
+lati = c(5.5, 8, 9.5, 15, 12.5, 7, 11.5, 9.5, 12),
+d.m  = c(8, 9, 11, 8, 10, 13, 10, 12, 18)
+)
+data
+X <- data.matrix(data)
+
+
+D<-PAC(X)
+
+D
+#pca <- PCA(X,axes=c(1,2))
+#get_eigenvalue(pca)
+#prcomp(X)
+```
+
+#To do.....
+
+# EX2 PCA and size effect
+
+
+# EX3 Coding PCA
+```{r , include=TRUE}
+d <- read.table("data/neighbor_globin.txt",row.names = 1) 
+```
+
+#2 check that these scores correspond well to dissimilarities. Name the colums
+```{r , include=TRUE}
+colnames(d)<- row.names(d)
+d # la matrix de dissimilarité
+heatmap(as.matrix(d),scale = "none")
+```
+
+#3 Compute the matrix delta of squared dissmilarities 
+#4 compute J
+```{r , include=TRUE}
+delta2 <- d^2
+
+n<-nrow(delta2)
+J <- diag(1,n)-matrix(1,n,n)/n
+```
+
+#5 compute B, how to interpret B
+```{r , include=TRUE}
+B <- -(J %*% delta2 %*% J)/2
+#B la matrice delta centree sur les lignes et les colones
+```
+#6 perform the spectral decomposition of B = UAU^t
+```{r , include=TRUE}
+
+U <- eigen(B)$vectors # vecteur propres de B
+
+A <- eigen(B)$values # valeur propres de B
+
+
+```
+#7
+-> 85% facteur 1
+-> 7%  facteur 2
+```{r , include=TRUE}
+(A^2)/sum(A^2)
+```
+
+#8
+#Λ+ est la matrice des m plus grandes valeurs propres, classées par ordre décroissant
+sur la diagonale.
+#U+ est la matrice des m vecteurs propres correspondants.
+```{r , include=TRUE}
+Aplus <- diag(1,2)*A[1:2]
+Uplus <- U[,1:2]
+X <- Uplus%*%sqrt(Aplus)
+X <- as.data.frame(X)
+row.names(X)<- row.names(d)
+
+plot(subset.data.frame(X,row.names="HBB?"))
+
+
+```
+
